@@ -169,6 +169,7 @@ export class AnalyzerService {
     imagePrompts: string[],
     sourceImageUrl: string,
     analysisData: string,
+    formAnswers: string,
   ): Promise<void> {
     await this.prisma.project.update({
       where: { id: projectId },
@@ -176,6 +177,7 @@ export class AnalyzerService {
         imagePrompts: JSON.stringify(imagePrompts),
         sourceImageUrl,
         analysisData,
+        formAnswers,
       },
     });
   }

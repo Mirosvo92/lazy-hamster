@@ -15,6 +15,7 @@ interface ProjectData {
   imagePrompts: string;
   sourceImageUrl: string;
   analysisData: string;
+  formAnswers: string;
   images: Array<{ url: string; prompt: string | null }>;
   landings: Array<{ id: string; url: string; status: string }>;
 }
@@ -87,6 +88,9 @@ export class PromptComponent implements OnInit, OnDestroy {
     if (project.analysisData) {
       try { this.analysis = JSON.parse(project.analysisData) as AnalysisResult; } catch { /* */ }
     }
+    if (project.formAnswers) {
+      try { this.formAnswers = JSON.parse(project.formAnswers) as Record<string, unknown>; } catch { /* */ }
+    }
 
     if (images.length === 4) {
       this.generatedImages.set(images.map((img) => ({ url: img.url, prompt: img.prompt ?? '' })));
@@ -118,10 +122,8 @@ export class PromptComponent implements OnInit, OnDestroy {
 
       // Try to generate landing prompt using history state or restored analysis
       const state = history.state;
-      if (state?.analysis && state?.formAnswers) {
-        this.analysis = state.analysis as AnalysisResult;
-        this.formAnswers = state.formAnswers as Record<string, unknown>;
-      }
+      if (state?.analysis) this.analysis = state.analysis as AnalysisResult;
+      if (state?.formAnswers) this.formAnswers = state.formAnswers as Record<string, unknown>;
       const urls = images.map((img) => img.url) as [string, string, string, string];
       this.loading.set(false);
       this.loadingStep.set(null);
@@ -176,6 +178,7 @@ export class PromptComponent implements OnInit, OnDestroy {
         projectId: this.projectId,
         sourceImageUrl: this.analysis.imageUrl,
         analysisData: JSON.stringify(this.analysis),
+        formAnswers: JSON.stringify(this.formAnswers),
       })
       .subscribe({
         next: (res) => {

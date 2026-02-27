@@ -49,6 +49,7 @@ export class AnalyzerController {
       projectId?: string;
       sourceImageUrl?: string;
       analysisData?: string;
+      formAnswers?: string;
     },
   ) {
     const imagePrompts = await this.analyzerService.generateImagePrompts(
@@ -63,6 +64,7 @@ export class AnalyzerController {
         imagePrompts,
         body.sourceImageUrl ?? '',
         body.analysisData ?? '',
+        body.formAnswers ?? '',
       );
     }
     return { imagePrompts };
