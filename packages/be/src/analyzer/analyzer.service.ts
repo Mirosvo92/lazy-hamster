@@ -773,22 +773,64 @@ export class AnalyzerService {
       assetUsageSection = `\n\n--- IMAGES ---\nProduct photo (main): ${imageUrls[0]}\nLifestyle photo: ${imageUrls[1]}\nDetail/close-up photo: ${imageUrls[2]}\nHero background photo: ${imageUrls[3]}`;
     }
 
-    // Extract landing page language from sellerData and place it prominently
-    let languageSection = '';
+    // Parse sellerData into a key-value map for explicit per-field instructions
+    const sellerFields: Record<string, string> = {};
     if (sellerData) {
-      const langMatch = /lp_language:\s*(.+)/i.exec(sellerData);
-      if (langMatch) {
-        const lang = langMatch[1].trim();
-        languageSection = `\n\n--- LANGUAGE (MANDATORY) ---\nALL text on the landing page MUST be written ONLY in: ${lang}\nThis is non-negotiable — every word, label, button, placeholder, testimonial, and tooltip must be in ${lang}.\nDo NOT use any other language anywhere on the page.`;
+      for (const line of sellerData.split('\n')) {
+        const colonIdx = line.indexOf(':');
+        if (colonIdx > 0) {
+          const key = line.slice(0, colonIdx).trim();
+          const val = line.slice(colonIdx + 1).trim();
+          if (key && val) sellerFields[key] = val;
+        }
       }
     }
+
+    // Language section — must appear first so AI sees it immediately
+    let languageSection = '';
+    const lang = sellerFields['lp_language'];
+    if (lang) {
+      languageSection = `\n\n--- LANGUAGE (MANDATORY) ---\nALL text on the landing page MUST be written ONLY in: ${lang}\nThis is non-negotiable — every word, label, button, placeholder, testimonial, and tooltip must be in ${lang}.\nDo NOT use any other language anywhere on the page.`;
+    }
+
+    const currencyCode = sellerFields['currency'] ?? '';
+    const priceDisplay = `${sellerFields['price'] ?? ''} ${currencyCode}`.trim();
+
+    // Config: how each seller field should be used in the landing page.
+    // Fields not listed here are included with a generic fallback.
+    const FIELD_USAGE: Record<string, string> = {
+      price: `Display as "${priceDisplay}" prominently in the hero section and on every CTA button. Write the currency name in the landing page language (e.g. Ukrainian → "гривень", Russian → "рублей", English → "dollars"). If a sales hook includes a discount, show a strikethrough "original" price alongside it.`,
+      currency: `Use together with the price. Write the currency name in the landing page language, not as a code.`,
+      delivery: `Create a dedicated delivery section with an SVG icon for each option listed.`,
+      warranty: `Display in the trust badges / guarantees section with a shield SVG icon.`,
+      returns: `Display in the trust badges / guarantees section alongside warranty.`,
+      sales_hooks: `Implement EVERY hook listed. Interpret each one: countdown/timer/счётчик/лічильник → live JS countdown timer near CTA; low stock/заканчивается/закінчується → "Only X left" badge + progress bar; discount/скидк/знижк → discount badge + strikethrough original price; free shipping/бесплатная доставка/безкоштовна → free shipping banner; gift/подарок/подарунок → gift badge near CTA. For any other hook, add it prominently on the page.`,
+      social_links: `Add to the footer as clickable links with inline SVG icons for each platform. Use the value as href if it looks like a URL, otherwise use "#" as placeholder.`,
+      extra_info: `Incorporate into the benefits / features section.`,
+    };
+
+    const skipFields = new Set(['lp_language']);
+    const sellerInstructions: string[] = [];
+
+    for (const [key, value] of Object.entries(sellerFields)) {
+      if (skipFields.has(key)) continue;
+      const usage =
+        FIELD_USAGE[key] ??
+        `Include this information visibly on the landing page.`;
+      sellerInstructions.push(`${key}: "${value}"\n  → ${usage}`);
+    }
+
+    const sellerUsageSection =
+      sellerInstructions.length > 0
+        ? `\n\n--- SELLER DATA — USE ALL OF THE FOLLOWING (MANDATORY) ---\nEvery item below MUST appear in the landing page. Do not skip any.\n\n${sellerInstructions.join('\n\n')}`
+        : '';
 
     return [
       landingPrompt,
       languageSection,
       assetUsageSection,
       productDescription ? `\n\n--- PRODUCT DESCRIPTION ---\n${productDescription}` : '',
-      sellerData ? `\n\n--- SELLER DATA ---\n${sellerData}` : '',
+      sellerUsageSection,
       `\n\n--- FORM SUBMISSION ---\nThe form must send a POST request to: ${formEndpoint}\nRequest body (JSON): { "name": <string>, "email": <string>, "phone": <string> }\nUse these exact input name attributes: name="name", name="email", name="phone"\nDo NOT write the fetch/submit JS — it will be injected separately.`,
     ]
       .filter(Boolean)

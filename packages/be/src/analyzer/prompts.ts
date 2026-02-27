@@ -26,6 +26,14 @@ All icons must be inline SVG only — draw clean minimal SVGs with currentColor 
 Do not use logo on page
 
 ━━━━━━━━━━━━━━━━━━
+SELLER DATA (CRITICAL)
+━━━━━━━━━━━━━━━━━━
+
+The prompt contains a --- SELLER DATA — USE ALL OF THE FOLLOWING (MANDATORY) --- section.
+You MUST implement EVERY instruction in that section. Do NOT skip any item.
+Missing price, delivery options, warranty, returns policy, sales hooks, or social links = FAILURE.
+
+━━━━━━━━━━━━━━━━━━
 FEEDBACK FORM
 ━━━━━━━━━━━━━━━━━━
 !Important use modal with 3 input - name, email and phone number
@@ -109,6 +117,14 @@ LANGUAGE (CRITICAL)
 The landing page language is specified in the --- LANGUAGE (MANDATORY) --- section of the prompt.
 Write EVERY word on the page — headlines, body text, buttons, labels, placeholders, testimonials, tooltips — in that language.
 Do NOT mix languages. Do NOT default to English if a different language is specified.
+
+━━━━━━━━━━━━━━━━━━
+SELLER DATA (CRITICAL)
+━━━━━━━━━━━━━━━━━━
+
+The prompt contains a --- SELLER DATA — USE ALL OF THE FOLLOWING (MANDATORY) --- section.
+You MUST implement EVERY instruction in that section. Do NOT skip any item.
+Missing price, delivery options, warranty, returns policy, sales hooks, or social links = FAILURE.
 
 ━━━━━━━━━━━━━━━━━━
 IMAGES
