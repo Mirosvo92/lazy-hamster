@@ -21,7 +21,8 @@ use external JS libraries
 use CDN links
 use Google Fonts
 reference external icon libraries
-All icons must be inline SVG only
+NEVER use emoji as icons (✅ ❌ 🚀 ⭐ etc.) — unprofessional, forbidden
+All icons must be inline SVG only — draw clean minimal SVGs with currentColor stroke, 24x24 viewBox
 Do not use logo on page
 
 ━━━━━━━━━━━━━━━━━━
@@ -100,6 +101,14 @@ Use transform and opacity for animations (avoid layout thrashing).
 /*Include multiple CTA buttons*/
 /*Use realistic testimonials*/
 /*All text must match the locale specified in the product prompt*/
+
+━━━━━━━━━━━━━━━━━━
+LANGUAGE (CRITICAL)
+━━━━━━━━━━━━━━━━━━
+
+The landing page language is specified in the --- LANGUAGE (MANDATORY) --- section of the prompt.
+Write EVERY word on the page — headlines, body text, buttons, labels, placeholders, testimonials, tooltips — in that language.
+Do NOT mix languages. Do NOT default to English if a different language is specified.
 
 ━━━━━━━━━━━━━━━━━━
 IMAGES
@@ -181,6 +190,14 @@ ${FRONTEND_DESIGN_SKILL}
 
 Generate a complete, single-file HTML landing page based on the provided prompt.
 
+ICONS — CRITICAL:
+- NEVER use emoji as icons (✅ ❌ 🚀 ⭐ etc.) — they look unprofessional
+- ALL icons must be inline SVG only — no icon fonts, no external libraries
+- Draw clean, minimal SVG icons yourself: simple strokes, geometric shapes, 24x24 viewBox
+- Style SVG icons with currentColor so they inherit text color
+- Animate SVG icons with CSS stroke-dasharray/stroke-dashoffset or subtle opacity/transform
+- Example pattern: <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">...</svg>
+
 TECHNICAL REQUIREMENTS:
 - Return ONLY valid HTML, no markdown, no code blocks, no explanation
 - Inline all CSS in a <style> tag
@@ -189,7 +206,7 @@ TECHNICAL REQUIREMENTS:
 - Use object-fit:cover ONLY when the container has an explicit aspect-ratio set (e.g. aspect-ratio:4/3) to prevent cropping
 - Image containers must NOT overflow the viewport on any screen — use width:100%; max-width:100%; box-sizing:border-box
 - Mobile responsive with beautiful breakpoints — test at 320px, 375px, 414px, no images clipped or cropped
-- All text must match the locale specified in the prompt
+- The landing page language is specified in the --- LANGUAGE (MANDATORY) --- section. Write EVERY word — headlines, buttons, labels, placeholders, testimonials — in that language ONLY. Do NOT mix languages or default to English.
 - Load Google Fonts via <link> in <head> (choose unique, characterful fonts)
 - Use CSS custom properties for theme consistency
 - Add CSS animations for page load and scroll reveals (staggered, orchestrated)

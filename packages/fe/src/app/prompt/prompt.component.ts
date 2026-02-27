@@ -16,6 +16,7 @@ interface ProjectData {
   sourceImageUrl: string;
   analysisData: string;
   formAnswers: string;
+  imageGenerationStatus: string;
   images: Array<{ url: string; prompt: string | null }>;
   landings: Array<{ id: string; url: string; status: string }>;
 }
@@ -54,6 +55,7 @@ export class PromptComponent implements OnInit, OnDestroy {
   private projectId = '';
   private currentLandingId = '';
   private pollTimer: ReturnType<typeof setTimeout> | null = null;
+  private imagesPollTimer: ReturnType<typeof setTimeout> | null = null;
 
   private imagePromptsForGeneration: string[] = [];
   private sourceImageUrlForGeneration = '';
@@ -131,18 +133,31 @@ export class PromptComponent implements OnInit, OnDestroy {
       return;
     }
 
-    if (images.length > 0) {
-      // Partial images — show them and offer to continue
+    if (images.length > 0 || project.imageGenerationStatus === 'generating') {
+      // Partial or in-progress — show what we have and poll/continue
       this.generatedImages.set(images.map((img) => ({ url: img.url, prompt: img.prompt ?? '' })));
       this.loading.set(false);
       this.loadingStep.set(null);
-      if (this.imagePromptsForGeneration.length > 0 && this.sourceImageUrlForGeneration) {
+
+      if (project.imageGenerationStatus === 'generating') {
+        // Backend is still generating — resume polling
+        this.generatingImages.set(true);
+        this.pollImageGenerationStatus();
+      } else if (this.imagePromptsForGeneration.length > 0 && this.sourceImageUrlForGeneration) {
         this.canContinueGeneration.set(true);
       }
       return;
     }
 
     // No images yet — check if prompts are saved (page refresh before any image generated)
+    if (project.imageGenerationStatus === 'generating') {
+      this.loading.set(false);
+      this.loadingStep.set(null);
+      this.generatingImages.set(true);
+      this.pollImageGenerationStatus();
+      return;
+    }
+
     if (this.imagePromptsForGeneration.length > 0 && this.sourceImageUrlForGeneration) {
       this.loading.set(false);
       this.loadingStep.set(null);
@@ -187,7 +202,7 @@ export class PromptComponent implements OnInit, OnDestroy {
           this.sourceImageUrlForGeneration = this.analysis!.imageUrl;
           this.loading.set(false);
           this.loadingStep.set(null);
-          this.generateImagesSequentially(res.imagePrompts, this.analysis!.imageUrl, 0);
+          this.startImageGenerationJob();
         },
         error: (err) => {
           this.error.set(err?.error?.message || 'Failed to generate image prompts. Please try again.');
@@ -197,54 +212,56 @@ export class PromptComponent implements OnInit, OnDestroy {
       });
   }
 
-  private generateImagesSequentially(prompts: string[], sourceImageUrl: string, startIndex: number): void {
-    console.log('prompts', prompts);
+  private startImageGenerationJob(): void {
     this.generatingImages.set(true);
+    this.http
+      .post('/api/analyze/start-image-generation', { projectId: this.projectId })
+      .subscribe({
+        next: () => this.pollImageGenerationStatus(),
+        error: (err) => {
+          this.error.set(err?.error?.message || 'Failed to start image generation. Please try again.');
+          this.generatingImages.set(false);
+        },
+      });
+  }
 
-    const generateNext = (index: number): void => {
-      if (index >= prompts.length) {
-        this.generatingImages.set(false);
-        const all = this.generatedImages();
-        if (all.length === 4) {
-          const urls = all.map((img) => img.url) as [string, string, string, string];
-          this.generateLandingPrompt(urls);
-        }
-        return;
-      }
-
+  private pollImageGenerationStatus(): void {
+    this.imagesPollTimer = setTimeout(() => {
       this.http
-        .post<{ image: { url: string; prompt: string } | null }>(
-          '/api/analyze/generate-product-image',
-          {
-            prompt: prompts[index],
-            sourceImageUrl,
-            projectId: this.projectId,
-          },
+        .get<{ status: string; images: { url: string; prompt: string }[] }>(
+          `/api/analyze/image-generation-status/${this.projectId}`,
         )
         .subscribe({
           next: (res) => {
-            this.tokenService.refresh();
-            if (res.image) {
-              this.generatedImages.update((imgs) => [...imgs, res.image!]);
+            // Add any new images that arrived since last poll
+            const current = this.generatedImages();
+            if (res.images.length > current.length) {
+              this.generatedImages.set(res.images);
+              this.tokenService.refresh();
             }
-            generateNext(index + 1);
-          },
-          error: (err) => {
-            console.error('[Image generation error]', { prompt: prompts[index], error: err });
-            this.error.set(err?.error?.message || 'Failed to generate image. Please try again.');
-            this.generatingImages.set(false);
-          },
-        });
-    };
 
-    generateNext(startIndex);
+            if (res.status === 'completed') {
+              this.generatingImages.set(false);
+              const all = this.generatedImages();
+              if (all.length === 4) {
+                const urls = all.map((img) => img.url) as [string, string, string, string];
+                this.generateLandingPrompt(urls);
+              }
+            } else if (res.status === 'failed') {
+              this.generatingImages.set(false);
+              this.error.set('Image generation failed. Please try again.');
+            } else {
+              this.pollImageGenerationStatus();
+            }
+          },
+          error: () => this.pollImageGenerationStatus(),
+        });
+    }, 3000);
   }
 
   continueGeneration(): void {
     this.canContinueGeneration.set(false);
-    const startIndex = this.generatedImages().length;
-    const remainingPrompts = this.imagePromptsForGeneration.slice(startIndex);
-    this.generateImagesSequentially(remainingPrompts, this.sourceImageUrlForGeneration, 0);
+    this.startImageGenerationJob();
   }
 
   private generateLandingPrompt(imageUrls: [string, string, string, string]): void {
@@ -304,6 +321,7 @@ export class PromptComponent implements OnInit, OnDestroy {
     if (Object.keys(this.formAnswers).length > 0) {
       sellerData = 'SELLER DATA:\n';
       for (const [key, value] of Object.entries(this.formAnswers)) {
+        if (key === 'customScripts') continue; // injected separately, not passed to AI
         const displayValue = Array.isArray(value)
           ? value.join(', ')
           : typeof value === 'object'
@@ -375,6 +393,10 @@ export class PromptComponent implements OnInit, OnDestroy {
     if (this.pollTimer !== null) {
       clearTimeout(this.pollTimer);
       this.pollTimer = null;
+    }
+    if (this.imagesPollTimer !== null) {
+      clearTimeout(this.imagesPollTimer);
+      this.imagesPollTimer = null;
     }
   }
 

@@ -182,6 +182,68 @@ export class AnalyzerService {
     });
   }
 
+  async startImageGeneration(projectId: string, userId: string): Promise<void> {
+    await this.prisma.project.update({
+      where: { id: projectId },
+      data: { imageGenerationStatus: 'generating' },
+    });
+    void this.runImageGeneration(projectId, userId);
+  }
+
+  private async runImageGeneration(projectId: string, userId: string): Promise<void> {
+    try {
+      const project = await this.prisma.project.findUniqueOrThrow({
+        where: { id: projectId },
+        include: { images: { orderBy: { createdAt: 'asc' } } },
+      });
+
+      const imagePrompts: string[] = project.imagePrompts ? (JSON.parse(project.imagePrompts) as string[]) : [];
+      const sourceImageUrl = project.sourceImageUrl;
+
+      if (!imagePrompts.length || !sourceImageUrl) {
+        await this.prisma.project.update({
+          where: { id: projectId },
+          data: { imageGenerationStatus: 'failed' },
+        });
+        return;
+      }
+
+      const startIndex = project.images.length;
+
+      for (let i = startIndex; i < imagePrompts.length; i++) {
+        await this.generateSingleProductImage(imagePrompts[i], sourceImageUrl, userId, projectId);
+      }
+
+      await this.prisma.project.update({
+        where: { id: projectId },
+        data: { imageGenerationStatus: 'completed' },
+      });
+    } catch (err) {
+      console.error('Image generation failed', err);
+      await this.prisma.project.update({
+        where: { id: projectId },
+        data: { imageGenerationStatus: 'failed' },
+      }).catch(() => null);
+    }
+  }
+
+  async getImageGenerationStatus(
+    projectId: string,
+  ): Promise<{ status: string; images: { url: string; prompt: string }[] }> {
+    const project = await this.prisma.project.findUnique({
+      where: { id: projectId },
+      select: {
+        imageGenerationStatus: true,
+        images: { orderBy: { createdAt: 'asc' }, select: { url: true, prompt: true } },
+      },
+    });
+    if (!project) return { status: 'not_found', images: [] };
+    return {
+      status: project.imageGenerationStatus,
+      images: project.images.map((img) => ({ url: img.url, prompt: img.prompt ?? '' })),
+    };
+  }
+
   async generateSingleProductImage(
     prompt: string,
     sourceImageUrl: string,
@@ -192,7 +254,7 @@ export class AnalyzerService {
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const response: any = await this.client.chat.completions.create({
-      model: 'sora_image',
+      model: 'gpt-image-1',
       messages: [
         {
           role: 'user',
@@ -329,7 +391,8 @@ export class AnalyzerService {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const response: any = await this.client.chat.completions.create({
         // model: 'gemini-3-pro-image-preview',
-        model: 'sora_image',
+        // model: 'sora_image',
+        model: 'gpt-image-1',
         messages: [
           {
             role: 'user',
@@ -710,8 +773,19 @@ export class AnalyzerService {
       assetUsageSection = `\n\n--- IMAGES ---\nProduct photo (main): ${imageUrls[0]}\nLifestyle photo: ${imageUrls[1]}\nDetail/close-up photo: ${imageUrls[2]}\nHero background photo: ${imageUrls[3]}`;
     }
 
+    // Extract landing page language from sellerData and place it prominently
+    let languageSection = '';
+    if (sellerData) {
+      const langMatch = /lp_language:\s*(.+)/i.exec(sellerData);
+      if (langMatch) {
+        const lang = langMatch[1].trim();
+        languageSection = `\n\n--- LANGUAGE (MANDATORY) ---\nALL text on the landing page MUST be written ONLY in: ${lang}\nThis is non-negotiable — every word, label, button, placeholder, testimonial, and tooltip must be in ${lang}.\nDo NOT use any other language anywhere on the page.`;
+      }
+    }
+
     return [
       landingPrompt,
+      languageSection,
       assetUsageSection,
       productDescription ? `\n\n--- PRODUCT DESCRIPTION ---\n${productDescription}` : '',
       sellerData ? `\n\n--- SELLER DATA ---\n${sellerData}` : '',

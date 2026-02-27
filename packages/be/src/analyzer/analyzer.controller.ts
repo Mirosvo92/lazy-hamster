@@ -109,6 +109,22 @@ export class AnalyzerController {
     );
   }
 
+  @Post('start-image-generation')
+  async startImageGeneration(
+    @Body() body: { projectId: string; userId?: string },
+  ) {
+    await this.analyzerService.startImageGeneration(
+      body.projectId,
+      body.userId ?? DEFAULT_USER_ID,
+    );
+    return { ok: true };
+  }
+
+  @Get('image-generation-status/:projectId')
+  async getImageGenerationStatus(@Param('projectId') projectId: string) {
+    return this.analyzerService.getImageGenerationStatus(projectId);
+  }
+
   @Post('generate-product-images')
   async generateProductImages(
     @Body()
