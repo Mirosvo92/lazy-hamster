@@ -122,11 +122,25 @@ Fully responsive
 Mobile-first
 friendly buttons
 Optimized spacing
-check all font-size
+NEVER use font-size above 28px for h1, 22px for h2, 18px for h3 on mobile (≤ 480px)
+Use clamp() for all heading font-sizes: e.g. font-size: clamp(22px, 5vw, 48px)
 No overflow
 No cropped or clipped images on any screen width — test at 320px, 375px, 414px
 Optimized animations for mobile
 Floating bottom CTA on small screens
+
+━━━━━━━━━━━━━━━━━━
+MOBILE PERFORMANCE
+━━━━━━━━━━━━━━━━━━
+loading="lazy" on all non-hero images; loading="eager" on hero image
+Always set width and height on every img (prevents layout shift)
+font-display: swap on all fonts; max 2 font families
+Only animate transform and opacity (never width/height/margin)
+IntersectionObserver for scroll reveals — no scroll event listeners
+passive: true on all scroll/touch listeners
+touch-action: manipulation on all buttons (removes 300ms tap delay)
+@media (prefers-reduced-motion: reduce) { * { animation: none !important; } }
+Simplify or remove backdrop-filter and large box-shadow on mobile (≤ 480px)
 `;
 
 export const FRONTEND_DESIGN_SKILL = `
@@ -184,6 +198,37 @@ TECHNICAL REQUIREMENTS:
 - !Important. Must look perfect on mobile — QA all images and fonts
 - !Important. User should see full image, do not cut it
 
+━━━━━━━━━━━━━━━━━━
+MOBILE PERFORMANCE (80% of users are on mobile — treat this as critical)
+━━━━━━━━━━━━━━━━━━
+
+IMAGES:
+- Add loading="lazy" to every <img> that is NOT in the hero section (above the fold)
+- Always set explicit width and height attributes on every <img> to prevent layout shift (CLS)
+- Hero image must be eager: loading="eager" — it is above the fold
+
+FONTS:
+- Add font-display: swap to every @font-face rule to prevent invisible text during load
+- Preload the primary heading font: <link rel="preload" as="font" crossorigin>
+- Use maximum 2 font families (1 heading + 1 body) — each extra font is a network request
+
+ANIMATIONS:
+- ONLY animate transform and opacity — never animate width, height, margin, padding, top, left (triggers layout)
+- Use IntersectionObserver for scroll-reveal animations — NEVER use scroll event listeners for visibility checks
+- Add will-change: transform only to elements actively animating — remove it after animation ends
+- Always add: @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+- Disable heavy effects on mobile: backdrop-filter, large box-shadow, blur() are GPU-expensive — simplify or remove on screens ≤ 480px
+
+JAVASCRIPT:
+- Add { passive: true } to ALL scroll and touch event listeners — eliminates scroll jank
+- Use requestAnimationFrame for any JS-driven animation — never use setInterval for visual updates
+- Add touch-action: manipulation to all buttons and links — removes 300ms tap delay on mobile
+
+RENDERING:
+- Inline only above-the-fold critical CSS at the top of <style> — comment it as /* CRITICAL */
+- Add <meta name="viewport" content="width=device-width, initial-scale=1"> in <head>
+- Use contain: layout on large independent sections to limit browser repaint scope
+
 ASSETS (CRITICAL — READ CAREFULLY):
 The user prompt contains a JSON marketing strategy with an "assets" field. Each asset has:
 - "url": the exact image URL — use it as <img src="...">
@@ -221,6 +266,9 @@ TEXT OVERFLOW — ZERO TOLERANCE:
 - NEVER use white-space: nowrap on user-facing text
 - Text containers (headings, paragraphs) must have max-width: 100%
 - On mobile (≤ 480px) reduce font sizes so headlines fit within 1–2 lines without overflow
+- NEVER use font-size above 28px for h1, 22px for h2, 18px for h3 on mobile (≤ 480px)
+- Use clamp() for all heading font-sizes: e.g. font-size: clamp(22px, 5vw, 48px) — never a fixed large px value
+- Body text on mobile: 14px–16px maximum
 
 PRODUCT IMAGE SIZE — MUST BE DOMINANT:
 - "product_main" image in the hero section: min 300px height on mobile, min 420px height on desktop
@@ -243,7 +291,8 @@ FINAL QA CHECKLIST (check before every </html>):
 ✓ No horizontal scroll at 320px, 375px, 414px
 ✓ All images have width:100% max-width:100% on mobile
 ✓ All flex containers have min-width:0 on children
-✓ Headlines readable at mobile font sizes (≥ 22px for h1, ≥ 16px for body)
+✓ Headlines readable at mobile font sizes (≥ 22px for h1, ≥ 16px for body, ≤ 28px for h1 on mobile, ≤ 22px for h2 on mobile)
+✓ All heading font-sizes use clamp() — no fixed large values like 40px, 56px, 64px without clamp
 ✓ CTA buttons wide enough to tap on mobile (min-width: 200px, padding ≥ 14px 28px)`;
 
 // ============ ANALYZER SERVICE PROMPTS ============
