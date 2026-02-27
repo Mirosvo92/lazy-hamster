@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { HttpClient, HttpEventType } from '@angular/common/http';
+import { HttpClient, HttpEventType, HttpProgressEvent, HttpResponse } from '@angular/common/http';
 import { Observable, map, filter } from 'rxjs';
 
 export interface AnalysisResult {
@@ -33,7 +33,7 @@ export class ImageUploadService {
       })
       .pipe(
         filter(
-          (event) =>
+          (event): event is HttpProgressEvent | HttpResponse<AnalysisResult> =>
             event.type === HttpEventType.UploadProgress ||
             event.type === HttpEventType.Response,
         ),
@@ -49,7 +49,7 @@ export class ImageUploadService {
           return {
             type: 'complete' as const,
             progress: 100,
-            result: (event as any).body as AnalysisResult,
+            result: (event as HttpResponse<AnalysisResult>).body as AnalysisResult,
           };
         }),
       );

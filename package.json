@@ -10,6 +10,7 @@
     "start:fe": "npm run start -w packages/fe",
     "start:be": "npm run start:dev -w packages/be",
     "build:fe": "npm run build -w packages/fe",
-    "build:be": "npm run build -w packages/be"
+    "build:be": "npm run build -w packages/be",
+    "studio": "prisma studio --schema=packages/be/prisma/schema.prisma"
   }
 }
