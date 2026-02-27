@@ -179,6 +179,22 @@
       </mat-card>
     }
 
+    <mat-card class="question-card">
+      <mat-card-content>
+        <label class="question-label">Custom Scripts</label>
+        <p class="field-hint">Paste analytics, tracking or any other scripts (e.g. Google Analytics, Facebook Pixel). They will be injected into &lt;head&gt; of the landing page.</p>
+        <mat-form-field appearance="outline" class="full-width">
+          <textarea
+            matInput
+            [(ngModel)]="customScripts"
+            name="customScripts"
+            rows="5"
+            placeholder="<!-- paste your scripts here, e.g. Google Analytics, Facebook Pixel -->"
+          ></textarea>
+        </mat-form-field>
+      </mat-card-content>
+    </mat-card>
+
     <div class="actions">
       <button mat-stroked-button (click)="goBack()">Back</button>
       <button mat-flat-button (click)="onSubmit()" [disabled]="!isFormValid()">Submit</button>

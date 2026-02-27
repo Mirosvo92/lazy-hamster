@@ -313,6 +313,10 @@ export class PromptComponent implements OnInit, OnDestroy {
       }
     }
 
+    const customScripts = typeof this.formAnswers['customScripts'] === 'string'
+      ? this.formAnswers['customScripts']
+      : undefined;
+
     this.http
       .post<{ landingId: string }>('/api/analyze/generate-landing', {
         landingPrompt: this.landingPrompt(),
@@ -320,6 +324,7 @@ export class PromptComponent implements OnInit, OnDestroy {
         projectId: this.projectId,
         productDescription: this.analysis?.description,
         sellerData,
+        customScripts,
       })
       .subscribe({
         next: (res) => {

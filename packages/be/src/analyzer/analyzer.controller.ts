@@ -138,6 +138,7 @@ export class AnalyzerController {
       projectId: string;
       productDescription?: string;
       sellerData?: string;
+      customScripts?: string;
     },
   ) {
     return this.analyzerService.startLandingGeneration(
@@ -147,6 +148,7 @@ export class AnalyzerController {
       body.projectId ?? DEFAULT_PROJECT_ID,
       body.productDescription,
       body.sellerData,
+      body.customScripts,
     );
   }
 

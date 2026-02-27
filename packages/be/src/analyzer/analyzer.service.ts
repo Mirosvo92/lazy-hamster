@@ -788,6 +788,7 @@ export class AnalyzerService {
     projectId: string,
     productDescription?: string,
     sellerData?: string,
+    customScripts?: string,
   ): Promise<{ landingId: string }> {
     await this.ensureTokens(userId);
 
@@ -802,6 +803,7 @@ export class AnalyzerService {
       userId,
       productDescription,
       sellerData,
+      customScripts,
     );
 
     return { landingId: landing.id };
@@ -814,6 +816,7 @@ export class AnalyzerService {
     userId: string,
     productDescription?: string,
     sellerData?: string,
+    customScripts?: string,
   ): Promise<void> {
     try {
       // Check if cancelled before starting
@@ -861,6 +864,10 @@ export class AnalyzerService {
         .trim();
 
       html = this.injectOrderScript(html, landingId);
+
+      if (customScripts?.trim()) {
+        html = html.replace('</head>', `${customScripts.trim()}\n</head>`);
+      }
 
       const buffer = Buffer.from(html, 'utf-8');
       const s3Result = await this.s3Service.uploadBuffer(buffer, userId, 'text/html', 'html');
