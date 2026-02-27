@@ -1,0 +1,187 @@
+<div class="details-container">
+  @if (loading()) {
+    <img src="/loader.gif" alt="Loading..." class="loader" />
+    <p class="loading-text">Generating questions...</p>
+  } @else if (error()) {
+    <p class="error-text">{{ error() }}</p>
+    <button mat-flat-button (click)="goBack()">Go back</button>
+  } @else {
+    <h2 class="details-title">Product Details</h2>
+
+    <mat-card class="question-card">
+      <mat-card-content>
+        <label class="question-label">
+          Бренд
+          <span class="required-mark">*</span>
+        </label>
+        <mat-form-field appearance="outline" class="full-width">
+          <input
+            matInput
+            type="text"
+            [(ngModel)]="brand"
+            name="brand"
+            placeholder="Например: Nike"
+          />
+        </mat-form-field>
+
+        <label class="question-label">
+          Модель
+          <span class="required-mark">*</span>
+        </label>
+        <mat-form-field appearance="outline" class="full-width">
+          <input
+            matInput
+            type="text"
+            [(ngModel)]="model"
+            name="model"
+            placeholder="Example: Air Max 90"
+          />
+        </mat-form-field>
+
+        <label class="question-label">Short Description</label>
+        <mat-form-field appearance="outline" class="full-width">
+          <textarea
+            matInput
+            [(ngModel)]="shortDescription"
+            name="shortDescription"
+            rows="3"
+            placeholder="short Description"
+          ></textarea>
+        </mat-form-field>
+      </mat-card-content>
+    </mat-card>
+
+    @for (q of questions(); track q.id) {
+      <mat-card class="question-card">
+        <mat-card-content>
+          <label class="question-label">
+            {{ q.label }}
+            @if (q.required) {
+              <span class="required-mark">*</span>
+            }
+          </label>
+
+          @switch (q.type) {
+            @case ('chips') {
+              <div class="chips-wrap">
+                @for (s of q.suggestions || []; track s) {
+                  <button
+                    type="button"
+                    class="chip"
+                    [class.chip-active]="isChipSelected(q.id, s)"
+                    (click)="toggleChip(q.id, s)"
+                  >
+                    {{ s }}
+                  </button>
+                }
+              </div>
+              <div class="chips-custom-row">
+                <mat-form-field appearance="outline" class="custom-chip-field">
+                  <input
+                    matInput
+                    [(ngModel)]="customChipInputs[q.id]"
+                    (keydown)="onCustomChipKeydown($event, q.id)"
+                    placeholder="Add custom..."
+                  />
+                </mat-form-field>
+                <button
+                  mat-icon-button
+                  (click)="addCustomChip(q.id)"
+                  class="add-chip-btn"
+                >
+                  <mat-icon>add</mat-icon>
+                </button>
+              </div>
+            }
+            @case ('chips_with_input') {
+              <div class="chips-wrap">
+                @for (s of q.suggestions || []; track s) {
+                  <button
+                    type="button"
+                    class="chip"
+                    [class.chip-active]="isChipSelected(q.id, s)"
+                    (click)="toggleChip(q.id, s)"
+                  >
+                    {{ s }}
+                  </button>
+                }
+              </div>
+              <div class="chips-custom-row">
+                <mat-form-field appearance="outline" class="custom-chip-field">
+                  <input
+                    matInput
+                    [(ngModel)]="customChipInputs[q.id]"
+                    (keydown)="onCustomChipKeydown($event, q.id)"
+                    placeholder="Add custom..."
+                  />
+                </mat-form-field>
+                <button
+                  mat-icon-button
+                  (click)="addCustomChip(q.id)"
+                  class="add-chip-btn"
+                >
+                  <mat-icon>add</mat-icon>
+                </button>
+              </div>
+              @for (chip of getSelectedChips(q.id); track chip) {
+                <mat-form-field appearance="outline" class="full-width chip-input-field">
+                  <mat-label>{{ chip }}</mat-label>
+                  <input
+                    matInput
+                    [(ngModel)]="chipInputValues[q.id][chip]"
+                    [placeholder]="chip"
+                  />
+                </mat-form-field>
+              }
+            }
+            @case ('select') {
+              <mat-form-field appearance="outline" class="full-width">
+                <mat-select [(ngModel)]="answers[q.id]">
+                  @for (opt of q.options || q.suggestions || []; track opt) {
+                    <mat-option [value]="opt">{{ opt }}</mat-option>
+                  }
+                </mat-select>
+              </mat-form-field>
+            }
+            @case ('textarea') {
+              <mat-form-field appearance="outline" class="full-width">
+                <textarea
+                  matInput
+                  [(ngModel)]="answers[q.id]"
+                  rows="3"
+                  [placeholder]="q.placeholder || ''"
+                ></textarea>
+              </mat-form-field>
+            }
+            @case ('number') {
+              <mat-form-field appearance="outline" class="full-width">
+                <input
+                  matInput
+                  type="number"
+                  [(ngModel)]="answers[q.id]"
+                  [placeholder]="q.placeholder || ''"
+                  min="0"
+                />
+              </mat-form-field>
+            }
+            @default {
+              <mat-form-field appearance="outline" class="full-width">
+                <input
+                  matInput
+                  type="text"
+                  [(ngModel)]="answers[q.id]"
+                  [placeholder]="q.placeholder || ''"
+                />
+              </mat-form-field>
+            }
+          }
+        </mat-card-content>
+      </mat-card>
+    }
+
+    <div class="actions">
+      <button mat-stroked-button (click)="goBack()">Back</button>
+      <button mat-flat-button (click)="onSubmit()" [disabled]="!isFormValid()">Submit</button>
+    </div>
+  }
+</div>

@@ -1,0 +1,103 @@
+<div class="new-project-container">
+  @if (uploadedCount() === 0) {
+    <h2>Upload 3 Product Photos</h2>
+    <p class="subtitle">Capture from different angles</p>
+
+    @if (error()) {
+      <p class="error-text">{{ error() }}</p>
+    }
+
+    <div class="drop-zones-grid">
+      @for (slot of [0, 1, 2]; track slot) {
+        <div class="drop-zone-wrapper">
+          <label class="zone-label">Photo {{ slot + 1 }}</label>
+          <div
+            class="drop-zone"
+            [class.drag-over]="dragOverSlot() === slot"
+            (click)="fileInput.click()"
+            (dragover)="onDragOver($event, slot)"
+            (dragleave)="onDragLeave($event, slot)"
+            (drop)="onDrop($event, slot)"
+          >
+            <mat-icon>add_photo_alternate</mat-icon>
+            <p>Drag & drop or click</p>
+          </div>
+          <input
+            #fileInput
+            type="file"
+            accept="image/*"
+            hidden
+            (change)="onFileSelected($event, slot)"
+          />
+        </div>
+      }
+    </div>
+  } @else {
+    <div class="preview-section">
+      <div class="preview-header">
+        <h2>Review Photos</h2>
+        <p class="upload-counter">
+          <mat-icon>check_circle</mat-icon>
+          {{ uploadedCount() }}/3 photos uploaded
+        </p>
+      </div>
+
+      <div class="previews-grid">
+        @for (preview of previews(); track $index) {
+          <div class="preview-card">
+            <label>Photo {{ $index + 1 }}</label>
+            @if (preview) {
+              <div class="preview-wrapper">
+                <img [src]="preview" alt="Preview" class="preview-image" />
+                <button
+                  mat-icon-button
+                  class="remove-btn"
+                  (click)="removeFile($index)"
+                  [disabled]="uploading()"
+                >
+                  <mat-icon>close</mat-icon>
+                </button>
+              </div>
+            } @else {
+              <div
+                class="empty-preview"
+                [class.drag-over]="dragOverSlot() === $index"
+                (click)="fileInput.click()"
+                (dragover)="onDragOver($event, $index)"
+                (dragleave)="onDragLeave($event, $index)"
+                (drop)="onDrop($event, $index)"
+              >
+                <mat-icon>add_photo_alternate</mat-icon>
+              </div>
+            }
+            <input
+              #fileInput
+              type="file"
+              accept="image/*"
+              hidden
+              (change)="onFileSelected($event, $index)"
+            />
+          </div>
+        }
+      </div>
+
+      @if (uploading()) {
+        <mat-progress-bar mode="determinate" [value]="uploadProgress()" />
+        <p class="hint-text">Analyzing images…</p>
+      }
+
+      @if (error()) {
+        <p class="error-text">{{ error() }}</p>
+      }
+
+      <div class="actions">
+        <button mat-stroked-button (click)="reset()" [disabled]="uploading()">
+          Cancel
+        </button>
+        <button mat-flat-button (click)="onNext()" [disabled]="!canUpload()">
+          Next
+        </button>
+      </div>
+    </div>
+  }
+</div>

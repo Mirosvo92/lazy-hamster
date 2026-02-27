@@ -1,0 +1,52 @@
+# Environment variables
+.env
+.env.*
+!.env.example
+
+# Node
+node_modules/
+npm-debug.log
+yarn-error.log
+
+# Compiled output
+dist/
+dist_amp/
+tmp/
+out-tsc/
+bazel-out/
+
+# Coverage
+coverage/
+
+# Angular
+.angular/cache/
+/typings
+
+# NestJS / Prisma
+generated/prisma/
+
+# IDEs and editors
+.idea/
+.project
+.classpath
+.c9/
+*.launch
+.settings/
+*.sublime-workspace
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+.history/
+
+# System files
+.DS_Store
+Thumbs.db
+
+# Git subdir repos (should not exist, but just in case)
+packages/fe/.git/
+packages/be/.git/
+
+# Claude
+.claude/

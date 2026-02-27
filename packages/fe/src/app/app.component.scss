@@ -1,0 +1,32 @@
+.mat-toolbar {
+  height: auto;
+}
+
+.toolbar-logo {
+  padding: 5px 0;
+  height: 65px;
+  object-fit: contain;
+}
+
+.token-balance {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-right: 8px;
+  padding: 4px 12px;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.15);
+  font-weight: 600;
+  font-size: 14px;
+
+  mat-icon {
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+  }
+
+  &.low {
+    background: rgba(244, 67, 54, 0.3);
+    color: #ffcdd2;
+  }
+}

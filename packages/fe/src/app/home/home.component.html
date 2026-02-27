@@ -1,0 +1,19 @@
+<div class="home-container">
+  <h1 class="title">Lazy Hamster</h1>
+  <p class="subtitle">Generate landing pages for your products in minutes</p>
+
+  <div class="actions">
+    <button mat-stroked-button (click)="goToProjects()">
+      <mat-icon>folder_open</mat-icon>
+      My Projects
+    </button>
+    <button mat-flat-button (click)="createProject()" [disabled]="creating()">
+      @if (creating()) {
+        <mat-spinner diameter="18" />
+      } @else {
+        <mat-icon>add</mat-icon>
+      }
+      Create Project
+    </button>
+  </div>
+</div>

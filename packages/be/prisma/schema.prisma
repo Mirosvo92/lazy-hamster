@@ -1,0 +1,84 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String   @id @default(uuid())
+  name         String   @default("Default User")
+  tokenBalance Int      @default(10000) @map("token_balance")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  projects Project[]
+  images   GeneratedImage[]
+  landings Landing[]
+  orders   Order[]
+
+  @@map("users")
+}
+
+model Project {
+  id            String   @id @default(uuid())
+  userId        String   @map("user_id")
+  name          String   @default("")
+  landingPrompt String   @default("") @map("landing_prompt")
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  user     User             @relation(fields: [userId], references: [id])
+  images   GeneratedImage[]
+  landings Landing[]
+
+  @@map("projects")
+}
+
+model Landing {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  projectId String   @map("project_id")
+  status    String   @default("generating")
+  url       String   @default("")
+  s3Key     String   @default("") @map("s3_key")
+  prompt    String   @default("")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user    User    @relation(fields: [userId], references: [id])
+  project Project @relation(fields: [projectId], references: [id])
+  orders  Order[]
+
+  @@map("landings")
+}
+
+model Order {
+  id        String   @id @default(uuid())
+  landingId String   @map("landing_id")
+  userId    String   @map("user_id")
+  name      String
+  email     String
+  phone     String
+  createdAt DateTime @default(now()) @map("created_at")
+
+  landing Landing @relation(fields: [landingId], references: [id])
+  user    User    @relation(fields: [userId], references: [id])
+
+  @@map("orders")
+}
+
+model GeneratedImage {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  projectId String   @map("project_id")
+  url       String
+  s3Key     String   @map("s3_key")
+  prompt    String?
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user    User    @relation(fields: [userId], references: [id])
+  project Project @relation(fields: [projectId], references: [id])
+
+  @@map("generated_images")
+}

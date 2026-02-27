@@ -1,0 +1,19 @@
+<mat-toolbar color="primary">
+  <img
+    [src]="theme.isDark() ? 'logo_white-1.png' : 'logo_black-1.png'"
+    alt="Lazy Hamster"
+    class="toolbar-logo"
+  />
+  <span style="flex: 1"></span>
+  @if (tokenService.balance() !== null) {
+    <div class="token-balance" [class.low]="tokenService.balance()! <= 500">
+      <mat-icon>bolt</mat-icon>
+      <span>{{ tokenService.balance() | number }}</span>
+    </div>
+  }
+  <button mat-icon-button (click)="theme.toggle()">
+    <mat-icon>{{ theme.isDark() ? 'light_mode' : 'dark_mode' }}</mat-icon>
+  </button>
+</mat-toolbar>
+
+<router-outlet />

@@ -1,0 +1,139 @@
+.prompt-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 48px 16px;
+  gap: 20px;
+  max-width: 640px;
+  margin: 0 auto;
+}
+
+.section-title {
+  margin: 8px 0 0;
+  font-size: 20px;
+  font-weight: 500;
+  align-self: flex-start;
+}
+
+.loader {
+  width: 64px;
+  height: 64px;
+}
+
+.loader-small {
+  width: 24px;
+  height: 24px;
+}
+
+.loading-text {
+  color: #616161;
+}
+
+.prompt-card,
+.image-prompt-card {
+  width: 100%;
+}
+
+.prompt-text {
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-size: 13px;
+  line-height: 1.6;
+  margin: 0;
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.image-prompt-text {
+  font-size: 14px;
+  line-height: 1.5;
+  margin: 0;
+}
+
+.create-images-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.image-progress {
+  width: 100%;
+}
+
+.image-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  width: 100%;
+}
+
+.generated-image-card {
+  overflow: hidden;
+}
+
+.generated-image {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.image-caption {
+  font-size: 12px;
+  line-height: 1.4;
+  margin: 8px 0 0;
+  color: var(--mat-sys-on-surface-variant, #616161);
+}
+
+.actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.error-text {
+  color: var(--mat-sys-error, #d32f2f);
+  font-weight: 500;
+}
+
+.generate-landing-btn {
+  margin-top: 16px;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 48px;
+}
+
+.landing-result-card {
+  width: 100%;
+  margin-top: 16px;
+
+  mat-card-header {
+    mat-card-title {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--mat-sys-primary);
+
+      mat-icon {
+        color: var(--mat-sys-primary);
+      }
+    }
+  }
+}
+
+.landing-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--mat-sys-primary);
+  font-weight: 500;
+  text-decoration: none;
+  margin-top: 12px;
+  font-size: 16px;
+
+  &:hover {
+    text-decoration: underline;
+  }
+}

@@ -1,0 +1,35 @@
+<div class="result-container">
+  @if (analysis(); as a) {
+    @if (preview()) {
+      <img [src]="preview()" alt="Uploaded image" class="result-image" />
+    }
+
+    <mat-card class="result-card">
+      <mat-card-header>
+        <mat-card-title>Brand - {{ a.brand || 'Unknown' }}</mat-card-title>
+        <mat-card-subtitle>Model - {{ a.model || 'Unknown' }}</mat-card-subtitle>
+      </mat-card-header>
+
+      <mat-card-content>
+        <p>{{ a.description }}</p>
+        @if (a.imageUrl) {
+          <p class="image-url">
+            <mat-icon class="link-icon">link</mat-icon>
+            <a [href]="a.imageUrl" target="_blank" rel="noopener">{{ a.imageUrl }}</a>
+          </p>
+        }
+      </mat-card-content>
+    </mat-card>
+
+    <div class="actions">
+      <button mat-stroked-button (click)="goBack()">
+        <mat-icon>arrow_back</mat-icon>
+        Back
+      </button>
+      <button mat-flat-button (click)="onNext()">
+        Next
+        <mat-icon>arrow_forward</mat-icon>
+      </button>
+    </div>
+  }
+</div>

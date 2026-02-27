@@ -1,0 +1,2 @@
+-- AlterTable
+ALTER TABLE "users" ADD COLUMN "token_balance" INTEGER NOT NULL DEFAULT 10000;

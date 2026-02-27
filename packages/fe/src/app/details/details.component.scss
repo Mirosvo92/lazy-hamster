@@ -1,0 +1,100 @@
+.details-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 48px 16px;
+  gap: 16px;
+  max-width: 560px;
+  margin: 0 auto;
+}
+
+.details-title {
+  margin: 0 0 8px;
+  font-size: 22px;
+  font-weight: 500;
+}
+
+.loader {
+  width: 64px;
+  height: 64px;
+}
+
+.loading-text {
+  color: #616161;
+}
+
+.question-card {
+  width: 100%;
+}
+
+.question-label {
+  display: block;
+  font-weight: 500;
+  margin-bottom: 12px;
+  font-size: 15px;
+}
+
+.required-mark {
+  color: var(--mat-sys-error, #d32f2f);
+}
+
+.full-width {
+  width: 100%;
+}
+
+.chips-wrap {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.chip {
+  padding: 6px 16px;
+  border-radius: 20px;
+  border: 1px solid var(--mat-sys-outline, #ccc);
+  background: transparent;
+  color: var(--mat-sys-on-surface, inherit);
+  cursor: pointer;
+  font-size: 14px;
+  transition: all 0.15s;
+
+  &:hover {
+    border-color: var(--mat-sys-primary);
+  }
+
+  &.chip-active {
+    background: var(--mat-sys-primary);
+    color: var(--mat-sys-on-primary, #fff);
+    border-color: var(--mat-sys-primary);
+  }
+}
+
+.chips-custom-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.custom-chip-field {
+  flex: 1;
+}
+
+.add-chip-btn {
+  margin-bottom: 20px;
+}
+
+.chip-input-field {
+  margin-top: 4px;
+}
+
+.actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.error-text {
+  color: var(--mat-sys-error, #d32f2f);
+  font-weight: 500;
+}

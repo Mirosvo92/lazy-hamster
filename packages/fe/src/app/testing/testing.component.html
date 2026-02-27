@@ -1,0 +1,141 @@
+<div class="testing-container">
+  <h1>Testing Tools</h1>
+
+  <div class="test-panel">
+    <h3>Test Landing Generation</h3>
+    <textarea
+      class="model-input landing-prompt"
+      placeholder="Landing prompt with {{'{{IMAGE_1}}'}}, {{'{{IMAGE_2}}'}}, {{'{{IMAGE_3}}'}}, {{'{{IMAGE_4}}'}} placeholders..."
+      [(ngModel)]="landingPrompt"
+      rows="6"
+    ></textarea>
+    <textarea
+      class="model-input landing-prompt"
+      placeholder="Product description (optional)"
+      [(ngModel)]="landingProductDescription"
+      rows="3"
+    ></textarea>
+    <textarea
+      class="model-input landing-prompt"
+      placeholder="Seller data: price, delivery, warranty, social links... (optional)"
+      [(ngModel)]="landingSellerData"
+      rows="3"
+    ></textarea>
+    <div class="landing-images">
+      @for (label of ['Product photo (main)', 'Lifestyle photo', 'Detail/close-up photo', 'Hero background photo']; track $index) {
+        <input
+          class="model-input"
+          [placeholder]="label + ' URL'"
+          [(ngModel)]="landingImageUrls[$index]"
+        />
+      }
+    </div>
+    <div class="test-controls">
+      <button mat-stroked-button (click)="generateLanding()" [disabled]="landingLoading() || landingStreaming()">
+        @if (landingLoading()) { Generating… } @else { Generate }
+      </button>
+      <button mat-flat-button (click)="streamGenerateLanding()" [disabled]="landingLoading() || landingStreaming()">
+        @if (landingStreaming()) { Streaming… } @else { Stream Generate }
+      </button>
+    </div>
+    @if (landingUrl()) {
+      <a [href]="landingUrl()!" target="_blank" class="landing-link">
+        <mat-icon>open_in_new</mat-icon> Open Landing Page
+      </a>
+    }
+    @if (landingHtml()) {
+      <iframe class="landing-preview" [srcdoc]="landingHtml()"></iframe>
+    }
+    @if (landingError()) {
+      <p class="error-text">{{ landingError() }}</p>
+    }
+  </div>
+
+  <div class="test-panel">
+    <h3>Test Image Generation</h3>
+    <input
+      class="model-input"
+      placeholder="Model name (e.g. gemini-2.5-flash-image)"
+      [(ngModel)]="testModel"
+    />
+    <input
+      class="model-input"
+      placeholder="Source image URL"
+      [(ngModel)]="testSourceImageUrl"
+    />
+    <textarea
+      class="model-input landing-prompt"
+      placeholder="Image generation prompt..."
+      [(ngModel)]="testPrompt"
+      rows="4"
+    ></textarea>
+    <input
+      class="model-input"
+      placeholder="Aspect ratio (e.g. 3:2, 16:9, 1:1, 4:3)"
+      [(ngModel)]="testAspectRatio"
+    />
+    <div class="test-controls">
+      <button mat-stroked-button (click)="testImageGen()" [disabled]="testLoading()">
+        @if (testLoading()) { Loading… } @else { Test }
+      </button>
+    </div>
+    @if (testImageUrl()) {
+      <img [src]="testImageUrl()" alt="Test result" class="test-result-image" />
+    }
+    @if (testError()) {
+      <p class="error-text">{{ testError() }}</p>
+    }
+  </div>
+
+  <div class="test-panel">
+    <h3>Test UX Architect</h3>
+    <textarea
+      class="model-input landing-prompt"
+      placeholder="Enter product brief or landing page description..."
+      [(ngModel)]="uxArchitectBrief"
+      rows="6"
+    ></textarea>
+    <div class="test-controls">
+      <button mat-flat-button (click)="generateUxArchitect()" [disabled]="uxArchitectLoading()">
+        @if (uxArchitectLoading()) { Generating… } @else { Generate UX Architecture }
+      </button>
+    </div>
+    @if (uxArchitectResult()) {
+      <pre class="ux-result">{{ uxArchitectResult() }}</pre>
+    }
+    @if (uxArchitectError()) {
+      <p class="error-text">{{ uxArchitectError() }}</p>
+    }
+  </div>
+
+  <div class="test-panel">
+    <h3>Resize Image</h3>
+    <input
+      class="model-input"
+      placeholder="Image URL"
+      [(ngModel)]="resizeImageUrl"
+    />
+    <mat-form-field appearance="outline" class="size-select">
+      <mat-label>Target size</mat-label>
+      <mat-select [(ngModel)]="resizeSize">
+        @for (s of sizePresentations; track s.value) {
+          <mat-option [value]="s.value">{{ s.label }}</mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
+    <div class="test-controls">
+      <button mat-flat-button (click)="resizeImage()" [disabled]="!resizeImageUrl || resizeLoading()">
+        @if (resizeLoading()) { Resizing… } @else { Resize }
+      </button>
+    </div>
+    @if (resizeResult()) {
+      <img [src]="resizeResult()!" alt="Resized result" class="test-result-image" />
+      <a [href]="resizeResult()!" [download]="'resized-' + resizeSize + '.jpg'" mat-stroked-button>
+        Download
+      </a>
+    }
+    @if (resizeError()) {
+      <p class="error-text">{{ resizeError() }}</p>
+    }
+  </div>
+</div>
