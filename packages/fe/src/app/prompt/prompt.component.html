@@ -5,8 +5,6 @@
       @switch (loadingStep()) {
         @case ('checking') { Checking existing data... }
         @case ('image-prompts') { Generating image prompts... }
-        @case ('images') { Generating product images... This may take a few minutes. }
-        @case ('landing-prompt') { Building marketing strategy... }
         @default { Loading... }
       }
     </p>
@@ -15,7 +13,7 @@
     <button mat-flat-button (click)="goBack()">Go back</button>
   } @else {
 
-    @if (generatedImages().length > 0) {
+    @if (generatedImages().length > 0 || generatingImages()) {
       <h2 class="section-title">Generated Images</h2>
 
       <div class="image-grid">
@@ -25,67 +23,85 @@
           </mat-card>
         }
       </div>
-    }
 
-    <h2 class="section-title">Landing Page Prompt</h2>
-
-    <mat-card class="prompt-card">
-      <mat-card-content>
-        <pre class="prompt-text">{{ landingPrompt() }}</pre>
-      </mat-card-content>
-      <mat-card-actions>
-        <button mat-stroked-button (click)="copyPrompt()">
-          <mat-icon>{{ copied() ? 'check' : 'content_copy' }}</mat-icon>
-          {{ copied() ? 'Copied!' : 'Copy prompt' }}
-        </button>
-      </mat-card-actions>
-    </mat-card>
-
-    <button
-      mat-flat-button
-      class="generate-landing-btn"
-      (click)="generateLandingPage()"
-      [disabled]="generatingLanding() || generatedImages().length !== 4"
-    >
-      @if (generatingLanding()) {
-        <img src="/loader.gif" alt="Loading..." class="loader-small" />
-      } @else {
-        <mat-icon>rocket</mat-icon>
+      @if (generatingImages()) {
+        <mat-progress-bar mode="indeterminate" class="image-progress" />
+        <p class="loading-text">Generating product images... This may take a few minutes.</p>
       }
-      {{ generatingLanding() ? 'Generating Landing Page...' : 'Generate Landing Page' }}
-    </button>
+    }
 
-    @if (generatingLanding()) {
+    @if (canContinueGeneration()) {
+      <button mat-flat-button class="continue-gen-btn" (click)="continueGeneration()">
+        <mat-icon>refresh</mat-icon>
+        Continue Generation
+      </button>
+    }
+
+    @if (loadingStep() === 'landing-prompt') {
       <mat-progress-bar mode="indeterminate" class="image-progress" />
-      <div class="generating-row">
-        <p class="loading-text">Creating your landing page...</p>
-        <button mat-stroked-button color="warn" (click)="stopLandingGeneration()">
-          <mat-icon>stop</mat-icon>
-          Stop
-        </button>
-      </div>
-    }
+      <p class="loading-text">Building marketing strategy...</p>
+    } @else if (landingPrompt()) {
 
-    @if (landingError()) {
-      <p class="error-text">{{ landingError() }}</p>
-    }
+      <h2 class="section-title">Landing Page Prompt</h2>
 
-    @if (landingUrl()) {
-      <mat-card class="landing-result-card">
-        <mat-card-header>
-          <mat-card-title>
-            <mat-icon>check_circle</mat-icon>
-            Landing Page Ready!
-          </mat-card-title>
-        </mat-card-header>
+      <mat-card class="prompt-card">
         <mat-card-content>
-          <p>Your landing page has been generated successfully.</p>
-          <a [href]="landingUrl()!" target="_blank" class="landing-link">
-            <mat-icon>open_in_new</mat-icon>
-            Open Landing Page
-          </a>
+          <pre class="prompt-text">{{ landingPrompt() }}</pre>
         </mat-card-content>
+        <mat-card-actions>
+          <button mat-stroked-button (click)="copyPrompt()">
+            <mat-icon>{{ copied() ? 'check' : 'content_copy' }}</mat-icon>
+            {{ copied() ? 'Copied!' : 'Copy prompt' }}
+          </button>
+        </mat-card-actions>
       </mat-card>
+
+      <button
+        mat-flat-button
+        class="generate-landing-btn"
+        (click)="generateLandingPage()"
+        [disabled]="generatingLanding() || generatedImages().length !== 4"
+      >
+        @if (generatingLanding()) {
+          <img src="/loader.gif" alt="Loading..." class="loader-small" />
+        } @else {
+          <mat-icon>rocket</mat-icon>
+        }
+        {{ generatingLanding() ? 'Generating Landing Page...' : 'Generate Landing Page' }}
+      </button>
+
+      @if (generatingLanding()) {
+        <mat-progress-bar mode="indeterminate" class="image-progress" />
+        <div class="generating-row">
+          <p class="loading-text">Creating your landing page...</p>
+          <button mat-stroked-button color="warn" (click)="stopLandingGeneration()">
+            <mat-icon>stop</mat-icon>
+            Stop
+          </button>
+        </div>
+      }
+
+      @if (landingError()) {
+        <p class="error-text">{{ landingError() }}</p>
+      }
+
+      @if (landingUrl()) {
+        <mat-card class="landing-result-card">
+          <mat-card-header>
+            <mat-card-title>
+              <mat-icon>check_circle</mat-icon>
+              Landing Page Ready!
+            </mat-card-title>
+          </mat-card-header>
+          <mat-card-content>
+            <p>Your landing page has been generated successfully.</p>
+            <a [href]="landingUrl()!" target="_blank" class="landing-link">
+              <mat-icon>open_in_new</mat-icon>
+              Open Landing Page
+            </a>
+          </mat-card-content>
+        </mat-card>
+      }
     }
 
     <div class="actions">

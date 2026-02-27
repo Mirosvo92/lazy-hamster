@@ -164,6 +164,89 @@ export class AnalyzerService {
     }
   }
 
+  async saveImageGenerationState(
+    projectId: string,
+    imagePrompts: string[],
+    sourceImageUrl: string,
+    analysisData: string,
+  ): Promise<void> {
+    await this.prisma.project.update({
+      where: { id: projectId },
+      data: {
+        imagePrompts: JSON.stringify(imagePrompts),
+        sourceImageUrl,
+        analysisData,
+      },
+    });
+  }
+
+  async generateSingleProductImage(
+    prompt: string,
+    sourceImageUrl: string,
+    userId: string,
+    projectId: string,
+  ): Promise<{ url: string; prompt: string } | null> {
+    await this.ensureTokens(userId);
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const response: any = await this.client.chat.completions.create({
+      model: 'sora_image',
+      messages: [
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'text',
+              text:
+                'Important! Use only those elements that are present in the image, as these images are for selling the product and must not contain fake information.\n' +
+                'The image must comply with OpenAI usage policies: no violence, no nudity, no hate symbols, no harmful or illegal content, no misleading information.\n' +
+                'Do not include any brand names, product names, logos, or trademarks in the image.\n' +
+                prompt +
+                '\n【1:1】',
+            },
+            {
+              type: 'image_url',
+              image_url: { url: sourceImageUrl },
+            },
+          ],
+        },
+      ],
+    });
+
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+    await this.deductTokens(userId, response?.usage?.total_tokens ?? 0);
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+    const content: string = response?.choices?.[0]?.message?.content ?? '';
+
+    let cdnUrl: string | null = null;
+
+    const base64Match = content.match(/data:image\/[a-zA-Z]+;base64,[A-Za-z0-9+/=]+/);
+    if (base64Match) cdnUrl = base64Match[0];
+
+    if (!cdnUrl) {
+      const markdownMatch = content.match(/!\[.*?\]\((https?:\/\/[^)]+)\)/);
+      if (markdownMatch) cdnUrl = markdownMatch[1];
+    }
+
+    if (!cdnUrl) {
+      const urlMatch = content.match(/https?:\/\/[^\s)]+/);
+      if (urlMatch) cdnUrl = urlMatch[0];
+    }
+
+    if (!cdnUrl) return null;
+
+    const imgResponse = await fetch(cdnUrl);
+    const imgBuffer = Buffer.from(await imgResponse.arrayBuffer());
+    const webpBuffer = await sharp(imgBuffer).webp({ quality: 85 }).toBuffer();
+    const s3Result = await this.s3Service.uploadBuffer(webpBuffer, userId, 'image/webp', 'webp');
+
+    await this.prisma.generatedImage.create({
+      data: { userId, projectId, url: s3Result.url, s3Key: s3Result.key, prompt },
+    });
+
+    return { url: s3Result.url, prompt };
+  }
+
   async generateLandingPrompt(
     analysis: { brand: string; model: string; description: string },
     formAnswers: Record<string, unknown>,
@@ -253,6 +336,7 @@ export class AnalyzerService {
                 type: 'text',
                 text:
                   'Important! Use only those elements that are present in the image, as these images are for selling the product and must not contain fake information.\n' +
+                  'The image must comply with OpenAI usage policies: no violence, no nudity, no hate symbols, no harmful or illegal content, no misleading information.\n' +
                   prompt +
                   '\n【1:1】',
               },

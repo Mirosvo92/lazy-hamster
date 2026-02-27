@@ -46,6 +46,9 @@ export class AnalyzerController {
       model: string;
       description: string;
       userId?: string;
+      projectId?: string;
+      sourceImageUrl?: string;
+      analysisData?: string;
     },
   ) {
     const imagePrompts = await this.analyzerService.generateImagePrompts(
@@ -54,7 +57,34 @@ export class AnalyzerController {
       body.description,
       body.userId ?? DEFAULT_USER_ID,
     );
+    if (body.projectId && imagePrompts.length > 0) {
+      await this.analyzerService.saveImageGenerationState(
+        body.projectId,
+        imagePrompts,
+        body.sourceImageUrl ?? '',
+        body.analysisData ?? '',
+      );
+    }
     return { imagePrompts };
+  }
+
+  @Post('generate-product-image')
+  async generateSingleProductImage(
+    @Body()
+    body: {
+      prompt: string;
+      sourceImageUrl: string;
+      userId?: string;
+      projectId?: string;
+    },
+  ) {
+    const image = await this.analyzerService.generateSingleProductImage(
+      body.prompt,
+      body.sourceImageUrl,
+      body.userId ?? DEFAULT_USER_ID,
+      body.projectId ?? DEFAULT_PROJECT_ID,
+    );
+    return { image };
   }
 
   @Post('generate-landing-prompt')

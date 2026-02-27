@@ -23,11 +23,14 @@ model User {
 }
 
 model Project {
-  id            String   @id @default(uuid())
-  userId        String   @map("user_id")
-  name          String   @default("")
-  landingPrompt String   @default("") @map("landing_prompt")
-  createdAt     DateTime @default(now()) @map("created_at")
+  id             String   @id @default(uuid())
+  userId         String   @map("user_id")
+  name           String   @default("")
+  landingPrompt  String   @default("") @map("landing_prompt")
+  imagePrompts   String   @default("") @map("image_prompts")
+  sourceImageUrl String   @default("") @map("source_image_url")
+  analysisData   String   @default("") @map("analysis_data")
+  createdAt      DateTime @default(now()) @map("created_at")
 
   user     User             @relation(fields: [userId], references: [id])
   images   GeneratedImage[]

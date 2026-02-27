@@ -12,6 +12,9 @@ import { TokenService } from '../services/token.service';
 interface ProjectData {
   id: string;
   landingPrompt: string;
+  imagePrompts: string;
+  sourceImageUrl: string;
+  analysisData: string;
   images: Array<{ url: string; prompt: string | null }>;
   landings: Array<{ id: string; url: string; status: string }>;
 }
@@ -32,12 +35,14 @@ interface ProjectData {
 
 export class PromptComponent implements OnInit, OnDestroy {
   loading = signal(true);
-  loadingStep = signal<'checking' | 'image-prompts' | 'images' | 'landing-prompt' | null>('checking');
+  loadingStep = signal<'checking' | 'image-prompts' | 'landing-prompt' | null>('checking');
   error = signal<string | null>(null);
   landingPrompt = signal('');
   copied = signal(false);
 
   generatedImages = signal<{ url: string; prompt: string }[]>([]);
+  generatingImages = signal(false);
+  canContinueGeneration = signal(false);
 
   generatingLanding = signal(false);
   landingUrl = signal<string | null>(null);
@@ -48,6 +53,9 @@ export class PromptComponent implements OnInit, OnDestroy {
   private projectId = '';
   private currentLandingId = '';
   private pollTimer: ReturnType<typeof setTimeout> | null = null;
+
+  private imagePromptsForGeneration: string[] = [];
+  private sourceImageUrlForGeneration = '';
 
   constructor(
     private readonly router: Router,
@@ -69,11 +77,21 @@ export class PromptComponent implements OnInit, OnDestroy {
     const images = project.images.slice(0, 4);
     const landing = project.landings[0];
 
+    // Restore persisted generation state
+    if (project.imagePrompts) {
+      try { this.imagePromptsForGeneration = JSON.parse(project.imagePrompts); } catch { /* */ }
+    }
+    if (project.sourceImageUrl) {
+      this.sourceImageUrlForGeneration = project.sourceImageUrl;
+    }
+    if (project.analysisData) {
+      try { this.analysis = JSON.parse(project.analysisData) as AnalysisResult; } catch { /* */ }
+    }
+
     if (images.length === 4) {
       this.generatedImages.set(images.map((img) => ({ url: img.url, prompt: img.prompt ?? '' })));
 
       if (landing?.status === 'completed' && landing.url) {
-        // Everything done — restore prompt and show landing
         if (project.landingPrompt) this.landingPrompt.set(project.landingPrompt);
         this.landingUrl.set(landing.url);
         this.loading.set(false);
@@ -82,7 +100,6 @@ export class PromptComponent implements OnInit, OnDestroy {
       }
 
       if (landing?.status === 'generating' && landing.id) {
-        // Generation was in progress — resume polling
         if (project.landingPrompt) this.landingPrompt.set(project.landingPrompt);
         this.currentLandingId = landing.id;
         this.loading.set(false);
@@ -92,30 +109,46 @@ export class PromptComponent implements OnInit, OnDestroy {
         return;
       }
 
-      // Images exist but no landing — check for saved landing prompt first
       if (project.landingPrompt) {
-        // Restore from DB — no API call needed
         this.landingPrompt.set(project.landingPrompt);
         this.loading.set(false);
         this.loadingStep.set(null);
         return;
       }
 
-      // No saved prompt — try to regenerate if state is available
+      // Try to generate landing prompt using history state or restored analysis
       const state = history.state;
       if (state?.analysis && state?.formAnswers) {
-        this.analysis = state.analysis;
-        this.formAnswers = state.formAnswers;
-        const urls = images.map((img) => img.url) as [string, string, string, string];
-        this.generateLandingPrompt(urls);
-      } else {
-        this.loading.set(false);
-        this.loadingStep.set(null);
+        this.analysis = state.analysis as AnalysisResult;
+        this.formAnswers = state.formAnswers as Record<string, unknown>;
+      }
+      const urls = images.map((img) => img.url) as [string, string, string, string];
+      this.loading.set(false);
+      this.loadingStep.set(null);
+      this.generateLandingPrompt(urls);
+      return;
+    }
+
+    if (images.length > 0) {
+      // Partial images — show them and offer to continue
+      this.generatedImages.set(images.map((img) => ({ url: img.url, prompt: img.prompt ?? '' })));
+      this.loading.set(false);
+      this.loadingStep.set(null);
+      if (this.imagePromptsForGeneration.length > 0 && this.sourceImageUrlForGeneration) {
+        this.canContinueGeneration.set(true);
       }
       return;
     }
 
-    // No images in DB — run full generation
+    // No images yet — check if prompts are saved (page refresh before any image generated)
+    if (this.imagePromptsForGeneration.length > 0 && this.sourceImageUrlForGeneration) {
+      this.loading.set(false);
+      this.loadingStep.set(null);
+      this.canContinueGeneration.set(true);
+      return;
+    }
+
+    // No state at all — run fresh generation from history state
     this.initFromState();
   }
 
@@ -125,8 +158,8 @@ export class PromptComponent implements OnInit, OnDestroy {
       this.router.navigate(['/new-project', this.projectId]);
       return;
     }
-    this.analysis = state.analysis;
-    this.formAnswers = state.formAnswers;
+    this.analysis = state.analysis as AnalysisResult;
+    this.formAnswers = state.formAnswers as Record<string, unknown>;
     this.generate();
   }
 
@@ -135,17 +168,23 @@ export class PromptComponent implements OnInit, OnDestroy {
 
     this.loadingStep.set('image-prompts');
 
-    // Step 1: generate image prompts
     this.http
       .post<{ imagePrompts: string[] }>('/api/analyze/generate-image-prompts', {
         brand: this.analysis.brand,
         model: this.analysis.model,
         description: this.analysis.description,
+        projectId: this.projectId,
+        sourceImageUrl: this.analysis.imageUrl,
+        analysisData: JSON.stringify(this.analysis),
       })
       .subscribe({
         next: (res) => {
           this.tokenService.refresh();
-          this.generateImages(res.imagePrompts);
+          this.imagePromptsForGeneration = res.imagePrompts;
+          this.sourceImageUrlForGeneration = this.analysis!.imageUrl;
+          this.loading.set(false);
+          this.loadingStep.set(null);
+          this.generateImagesSequentially(res.imagePrompts, this.analysis!.imageUrl, 0);
         },
         error: (err) => {
           this.error.set(err?.error?.message || 'Failed to generate image prompts. Please try again.');
@@ -155,40 +194,61 @@ export class PromptComponent implements OnInit, OnDestroy {
       });
   }
 
-  private generateImages(imagePrompts: string[]): void {
-    if (!this.analysis?.imageUrl) return;
+  private generateImagesSequentially(prompts: string[], sourceImageUrl: string, startIndex: number): void {
+    console.log('prompts', prompts);
+    this.generatingImages.set(true);
 
-    this.loadingStep.set('images');
-
-    // Step 2: generate product images
-    this.http
-      .post<{ images: { url: string; prompt: string }[] }>(
-        '/api/analyze/generate-product-images',
-        {
-          imagePrompts,
-          sourceImageUrl: this.analysis.imageUrl,
-          projectId: this.projectId,
-        },
-      )
-      .subscribe({
-        next: (res) => {
-          this.tokenService.refresh();
-          this.generatedImages.set(res.images);
-          const urls = res.images.map((img) => img.url) as [string, string, string, string];
+    const generateNext = (index: number): void => {
+      if (index >= prompts.length) {
+        this.generatingImages.set(false);
+        const all = this.generatedImages();
+        if (all.length === 4) {
+          const urls = all.map((img) => img.url) as [string, string, string, string];
           this.generateLandingPrompt(urls);
-        },
-        error: (err) => {
-          this.error.set(err?.error?.message || 'Failed to generate images. Please try again.');
-          this.loading.set(false);
-          this.loadingStep.set(null);
-        },
-      });
+        }
+        return;
+      }
+
+      this.http
+        .post<{ image: { url: string; prompt: string } | null }>(
+          '/api/analyze/generate-product-image',
+          {
+            prompt: prompts[index],
+            sourceImageUrl,
+            projectId: this.projectId,
+          },
+        )
+        .subscribe({
+          next: (res) => {
+            this.tokenService.refresh();
+            if (res.image) {
+              this.generatedImages.update((imgs) => [...imgs, res.image!]);
+            }
+            generateNext(index + 1);
+          },
+          error: (err) => {
+            console.error('[Image generation error]', { prompt: prompts[index], error: err });
+            this.error.set(err?.error?.message || 'Failed to generate image. Please try again.');
+            this.generatingImages.set(false);
+          },
+        });
+    };
+
+    generateNext(startIndex);
+  }
+
+  continueGeneration(): void {
+    this.canContinueGeneration.set(false);
+    const startIndex = this.generatedImages().length;
+    const remainingPrompts = this.imagePromptsForGeneration.slice(startIndex);
+    this.generateImagesSequentially(remainingPrompts, this.sourceImageUrlForGeneration, 0);
   }
 
   private generateLandingPrompt(imageUrls: [string, string, string, string]): void {
+    if (!this.analysis) return;
+
     this.loadingStep.set('landing-prompt');
 
-    // Step 3: generate landing prompt with real image URLs
     this.http
       .post<{ landingPrompt: string }>('/api/analyze/generate-landing-prompt', {
         analysis: this.analysis,
@@ -200,12 +260,10 @@ export class PromptComponent implements OnInit, OnDestroy {
         next: (res) => {
           this.tokenService.refresh();
           this.landingPrompt.set(res.landingPrompt);
-          this.loading.set(false);
           this.loadingStep.set(null);
         },
         error: (err) => {
           this.error.set(err?.error?.message || 'Failed to generate landing prompt. Please try again.');
-          this.loading.set(false);
           this.loadingStep.set(null);
         },
       });
@@ -288,7 +346,6 @@ export class PromptComponent implements OnInit, OnDestroy {
             } else if (res.status === 'cancelled') {
               this.generatingLanding.set(false);
             } else {
-              // still generating — poll again
               this.pollLandingStatus();
             }
           },
