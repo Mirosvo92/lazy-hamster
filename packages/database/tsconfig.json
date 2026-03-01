@@ -1,0 +1,19 @@
+{
+    "extends": "../../tsconfig.base.json",
+    "compilerOptions": {
+        "module": "ESNext",
+        "moduleResolution": "bundler",
+        "esModuleInterop": true,
+        "isolatedModules": true,
+        "declaration": true,
+        "target": "ES2022",
+        "outDir": "./dist",
+        "baseUrl": "./",
+        "skipLibCheck": true,
+        "strictNullChecks": true,
+        "forceConsistentCasingInFileNames": true,
+        "composite": true
+    },
+    "include": ["generated/**/*", "prisma/**/*"],
+    "exclude": ["node_modules", "dist"]
+}

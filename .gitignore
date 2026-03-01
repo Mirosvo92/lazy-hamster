@@ -50,3 +50,6 @@ packages/be/.git/
 
 # Claude
 .claude/
+
+# Turborepo
+.turbo
