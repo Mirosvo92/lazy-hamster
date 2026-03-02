@@ -794,7 +794,8 @@ export class AnalyzerService {
     }
 
     const currencyCode = sellerFields['currency'] ?? '';
-    const priceDisplay = `${sellerFields['price'] ?? ''} ${currencyCode}`.trim();
+    const priceDisplay =
+      `${sellerFields['price'] ?? ''} ${currencyCode}`.trim();
 
     // Config: how each seller field should be used in the landing page.
     // Fields not listed here are included with a generic fallback.
