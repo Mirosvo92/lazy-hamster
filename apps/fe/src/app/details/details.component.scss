@@ -38,6 +38,13 @@
   color: var(--mat-sys-error, #d32f2f);
 }
 
+.field-hint {
+  font-size: 13px;
+  color: #757575;
+  margin: -4px 0 12px;
+  line-height: 1.4;
+}
+
 .full-width {
   width: 100%;
 }

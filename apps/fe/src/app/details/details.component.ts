@@ -58,6 +58,7 @@ export class DetailsComponent implements OnInit {
   chipSelections: Record<string, Set<string>> = {};
   customChipInputs: Record<string, string> = {};
   chipInputValues: Record<string, Record<string, string>> = {};
+  customScripts = '';
 
   constructor(
     private readonly router: Router,
@@ -209,6 +210,10 @@ export class DetailsComponent implements OnInit {
           result[qId] = Array.from(set);
         }
       }
+    }
+
+    if (this.customScripts.trim()) {
+      result['customScripts'] = this.customScripts.trim();
     }
 
     this.router.navigate(['/prompt', this.projectId], {

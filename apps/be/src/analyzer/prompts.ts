@@ -21,8 +21,17 @@ use external JS libraries
 use CDN links
 use Google Fonts
 reference external icon libraries
-All icons must be inline SVG only
+NEVER use emoji as icons (✅ ❌ 🚀 ⭐ etc.) — unprofessional, forbidden
+All icons must be inline SVG only — draw clean minimal SVGs with currentColor stroke, 24x24 viewBox
 Do not use logo on page
+
+━━━━━━━━━━━━━━━━━━
+SELLER DATA (CRITICAL)
+━━━━━━━━━━━━━━━━━━
+
+The prompt contains a --- SELLER DATA — USE ALL OF THE FOLLOWING (MANDATORY) --- section.
+You MUST implement EVERY instruction in that section. Do NOT skip any item.
+Missing price, delivery options, warranty, returns policy, sales hooks, or social links = FAILURE.
 
 ━━━━━━━━━━━━━━━━━━
 FEEDBACK FORM
@@ -100,6 +109,22 @@ Use transform and opacity for animations (avoid layout thrashing).
 /*Include multiple CTA buttons*/
 /*Use realistic testimonials*/
 /*All text must match the locale specified in the product prompt*/
+
+━━━━━━━━━━━━━━━━━━
+LANGUAGE (CRITICAL)
+━━━━━━━━━━━━━━━━━━
+
+The landing page language is specified in the --- LANGUAGE (MANDATORY) --- section of the prompt.
+Write EVERY word on the page — headlines, body text, buttons, labels, placeholders, testimonials, tooltips — in that language.
+Do NOT mix languages. Do NOT default to English if a different language is specified.
+
+━━━━━━━━━━━━━━━━━━
+SELLER DATA (CRITICAL)
+━━━━━━━━━━━━━━━━━━
+
+The prompt contains a --- SELLER DATA — USE ALL OF THE FOLLOWING (MANDATORY) --- section.
+You MUST implement EVERY instruction in that section. Do NOT skip any item.
+Missing price, delivery options, warranty, returns policy, sales hooks, or social links = FAILURE.
 
 ━━━━━━━━━━━━━━━━━━
 IMAGES
@@ -181,6 +206,14 @@ ${FRONTEND_DESIGN_SKILL}
 
 Generate a complete, single-file HTML landing page based on the provided prompt.
 
+ICONS — CRITICAL:
+- NEVER use emoji as icons (✅ ❌ 🚀 ⭐ etc.) — they look unprofessional
+- ALL icons must be inline SVG only — no icon fonts, no external libraries
+- Draw clean, minimal SVG icons yourself: simple strokes, geometric shapes, 24x24 viewBox
+- Style SVG icons with currentColor so they inherit text color
+- Animate SVG icons with CSS stroke-dasharray/stroke-dashoffset or subtle opacity/transform
+- Example pattern: <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">...</svg>
+
 TECHNICAL REQUIREMENTS:
 - Return ONLY valid HTML, no markdown, no code blocks, no explanation
 - Inline all CSS in a <style> tag
@@ -189,7 +222,7 @@ TECHNICAL REQUIREMENTS:
 - Use object-fit:cover ONLY when the container has an explicit aspect-ratio set (e.g. aspect-ratio:4/3) to prevent cropping
 - Image containers must NOT overflow the viewport on any screen — use width:100%; max-width:100%; box-sizing:border-box
 - Mobile responsive with beautiful breakpoints — test at 320px, 375px, 414px, no images clipped or cropped
-- All text must match the locale specified in the prompt
+- The landing page language is specified in the --- LANGUAGE (MANDATORY) --- section. Write EVERY word — headlines, buttons, labels, placeholders, testimonials — in that language ONLY. Do NOT mix languages or default to English.
 - Load Google Fonts via <link> in <head> (choose unique, characterful fonts)
 - Use CSS custom properties for theme consistency
 - Add CSS animations for page load and scroll reveals (staggered, orchestrated)
@@ -298,10 +331,10 @@ FINAL QA CHECKLIST (check before every </html>):
 // ============ ANALYZER SERVICE PROMPTS ============
 
 export const getProductAnalysisPrompt = (locale: string) =>
-    `You are a product identification assistant. Analyze the image and return a JSON object with exactly three fields: "brand", "model", and "description". The "description" should describe the product (all details). Respond ONLY with valid JSON, no markdown or extra text. Respond in the language specified by the locale: "${locale}". Ignore the watermarks on the image. Ignore watermarks on images. Read the brand only if it's listed on the product itself.`;
+  `You are a product identification assistant. Analyze the image and return a JSON object with exactly three fields: "brand", "model", and "description". The "description" should describe the product (all details). Respond ONLY with valid JSON, no markdown or extra text. Respond in the language specified by the locale: "${locale}". Ignore the watermarks on the image. Ignore watermarks on images. Read the brand only if it's listed on the product itself.`;
 
 export const getQuestionsGenerationPrompt = (locale: string) =>
-    `You are a product details assistant and Conversion Copywriter. Based on the product info provided, generate 4-8 follow-up questions to gather more details about the product for a sales listing.
+  `You are a product details assistant and Conversion Copywriter. Based on the product info provided, generate 4-8 follow-up questions to gather more details about the product for a sales listing.
 
 Return a JSON array of question objects. Each question must have:
 - "id": unique string identifier (e.g. "condition", "color")
@@ -328,7 +361,7 @@ Respond ONLY with valid JSON array, no markdown or extra text.
 All labels, placeholders, suggestions, and options must be in the language of locale: "${locale}".`;
 
 export const getLandingPromptGenerationSystem = (
-    imageUrls: [string, string, string, string],
+  imageUrls: [string, string, string, string],
 ) => `You are a senior direct-response marketing strategist with 15+ years of experience in e-commerce and performance marketing.
 
 Your job is NOT to write a landing page.
@@ -425,7 +458,7 @@ JSON STRUCTURE:
 }`;
 
 export const getImagePromptsGenerationPrompt = () =>
-    `You are an expert at writing image generation prompts. Based on the product info, create exactly 4 detailed image prompts for an AI image generator.
+  `You are an expert at writing image generation prompts. Based on the product info, create exactly 4 detailed image prompts for an AI image generator.
 
 The prompts will be used to generate images based on the ORIGINAL product photo (image editing/variation, not text-to-image).
 

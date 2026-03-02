@@ -30,8 +30,9 @@ model Project {
   imagePrompts   String   @default("") @map("image_prompts")
   sourceImageUrl String   @default("") @map("source_image_url")
   analysisData   String   @default("") @map("analysis_data")
-  formAnswers    String   @default("") @map("form_answers")
-  createdAt      DateTime @default(now()) @map("created_at")
+  formAnswers           String   @default("") @map("form_answers")
+  imageGenerationStatus String   @default("idle") @map("image_generation_status")
+  createdAt             DateTime @default(now()) @map("created_at")
 
   user     User             @relation(fields: [userId], references: [id])
   images   GeneratedImage[]
