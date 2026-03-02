@@ -2,10 +2,13 @@
   "name": "@lazy-hamster/fe",
   "version": "0.0.0",
   "scripts": {
-    "dev": "ng serve",
+    "dev": "ng serve --configuration development",
     "ng": "ng",
     "start": "ng serve",
-    "build": "ng build",
+    "build": "ng build --configuration production",
+    "build:staging": "ng build --configuration staging",
+    "build:prod": "ng build --configuration production",
+    "serve:staging": "ng serve --configuration staging",
     "watch": "ng build --watch --configuration development",
     "test": "ng test"
   },

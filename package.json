@@ -5,8 +5,10 @@
     "scripts": {
         "start:fe": "pnpm --filter @lazy-hamster/fe start",
         "start:be": "pnpm --filter @lazy-hamster/be start:dev",
-        "build:fe": "pnpm --filter @lazy-hamster/fe build",
-        "build:be": "pnpm --filter @lazy-hamster/be build",
+        "build:fe": "pnpm --filter @lazy-hamster/fe build:prod",
+        "build:be": "pnpm --filter @lazy-hamster/be build:prod",
+        "build:staging:fe": "pnpm --filter @lazy-hamster/fe build:staging",
+        "build:staging:be": "pnpm --filter @lazy-hamster/be build:staging",
         "studio": "pnpm --filter @lazy-hamster/database exec prisma studio",
         "dev": "turbo run dev --parallel",
         "build": "turbo run build --parallel"
