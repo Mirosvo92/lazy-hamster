@@ -50,8 +50,10 @@ export class S3Service {
         userId: string,
         contentType: string,
         ext = 'png',
+        slug?: string,
     ): Promise<{ url: string; key: string }> {
-        const key = `generated/${userId}/${randomUUID()}.${ext}`;
+        const filename = slug ? `${slug}.${ext}` : `${randomUUID()}.${ext}`;
+        const key = `lp/${userId}/${filename}`;
 
         await this.s3.send(
             new PutObjectCommand({

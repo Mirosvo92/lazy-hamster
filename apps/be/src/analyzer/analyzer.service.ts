@@ -312,11 +312,48 @@ export class AnalyzerService {
         const webpBuffer = await sharp(imgBuffer)
             .webp({ quality: 85 })
             .toBuffer();
+
+        let imageSlug: string | undefined;
+        try {
+            const project = await this.prisma.project.findUnique({
+                where: { id: projectId },
+                select: {
+                    analysisData: true,
+                    images: { select: { s3Key: true } },
+                },
+            });
+            const analysis = JSON.parse(project?.analysisData ?? '{}') as {
+                brand?: string;
+                model?: string;
+                description?: string;
+            };
+            const nameSource = [analysis.brand?.trim(), analysis.model?.trim()]
+                .filter(Boolean)
+                .join(' ') || analysis.description?.trim().split(/\s+/).slice(0, 3).join(' ') || '';
+            const base = nameSource
+                .toLowerCase()
+                .replace(/[^a-z0-9а-яёіїє]+/gi, '-')
+                .replace(/^-+|-+$/g, '');
+            if (base) {
+                const taken = new Set(project!.images.map((i) => i.s3Key));
+                let index = project!.images.length + 1;
+                let candidate = `lp/${userId}/${base}-${index}.webp`;
+                while (taken.has(candidate)) {
+                    index++;
+                    candidate = `lp/${userId}/${base}-${index}.webp`;
+                }
+                imageSlug = `${base}-${index}`;
+            }
+        } catch {
+            // fallback to uuid
+        }
+
         const s3Result = await this.s3Service.uploadBuffer(
             webpBuffer,
             userId,
             'image/webp',
             'webp',
+            imageSlug,
         );
 
         await this.prisma.generatedImage.create({
@@ -999,13 +1036,54 @@ export class AnalyzerService {
             // Check if cancelled before starting
             const current = await this.prisma.landing.findUnique({
                 where: { id: landingId },
+                include: { project: { select: { analysisData: true } } },
             });
             if (current?.status === 'cancelled') return;
+
+            let landingSlug: string | undefined;
+            try {
+                const analysis = JSON.parse(
+                    current?.project?.analysisData ?? '{}',
+                ) as {
+                    brand?: string;
+                    model?: string;
+                    description?: string;
+                };
+                const nameSource = [analysis.brand?.trim(), analysis.model?.trim()]
+                    .filter(Boolean)
+                    .join(' ') || analysis.description?.trim().split(/\s+/).slice(0, 3).join(' ') || '';
+                const base = nameSource
+                    .toLowerCase()
+                    .replace(/[^a-z0-9а-яёіїє]+/gi, '-')
+                    .replace(/^-+|-+$/g, '');
+                if (base) {
+                    // Find unique slug by checking existing s3Keys for this user
+                    const existingKeys = await this.prisma.landing.findMany({
+                        where: {
+                            userId,
+                            s3Key: { contains: `lp/${userId}/${base}` },
+                        },
+                        select: { s3Key: true },
+                    });
+                    const taken = new Set(existingKeys.map((l) => l.s3Key));
+                    let candidate = `lp/${userId}/${base}.html`;
+                    let counter = 2;
+                    while (taken.has(candidate)) {
+                        candidate = `lp/${userId}/${base}-${counter}.html`;
+                        counter++;
+                    }
+                    landingSlug = candidate
+                        .replace(`lp/${userId}/`, '')
+                        .replace('.html', '');
+                }
+            } catch {
+                // fallback to uuid
+            }
 
             const userContent = this.buildLandingUserContent(
                 landingPrompt,
                 imageUrls,
-                landingId,
+                landingSlug ?? landingId,
                 productDescription,
                 sellerData,
             );
@@ -1041,7 +1119,7 @@ export class AnalyzerService {
                 .replace(/```\s*$/i, '')
                 .trim();
 
-            html = this.injectOrderScript(html, landingId);
+            html = this.injectOrderScript(html, landingSlug ?? landingId);
 
             if (customScripts?.trim()) {
                 html = html.replace(
@@ -1056,6 +1134,7 @@ export class AnalyzerService {
                 userId,
                 'text/html',
                 'html',
+                landingSlug,
             );
 
             await this.prisma.landing.update({

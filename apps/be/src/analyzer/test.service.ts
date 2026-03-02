@@ -80,13 +80,16 @@ export class TestService {
         email: string,
         phone: string,
     ): Promise<{ ok: boolean }> {
-        const landing = await this.prisma.landing.findUnique({
-            where: { id: landingId },
-        });
+        const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(landingId);
+        const landing = isUuid
+            ? await this.prisma.landing.findUnique({ where: { id: landingId } })
+            : await this.prisma.landing.findFirst({
+                  where: { s3Key: { endsWith: `/${landingId}.html` } },
+              });
         if (!landing) throw new NotFoundException('Landing not found');
 
         await this.prisma.order.create({
-            data: { landingId, userId: landing.userId, name, email, phone },
+            data: { landingId: landing.id, userId: landing.userId, name, email, phone },
         });
 
         return { ok: true };
