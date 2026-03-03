@@ -11,13 +11,14 @@ datasource db {
 model User {
   id           String   @id @default(uuid())
   name         String   @default("Default User")
-  tokenBalance Int      @default(10000) @map("token_balance")
+  tokenBalance Int      @default(1000) @map("token_balance")
   createdAt    DateTime @default(now()) @map("created_at")
 
-  projects Project[]
-  images   GeneratedImage[]
-  landings Landing[]
-  orders   Order[]
+  projects    Project[]
+  images      GeneratedImage[]
+  landings    Landing[]
+  orders      Order[]
+  tokenUsages TokenUsage[]
 
   @@map("users")
 }
@@ -86,4 +87,17 @@ model GeneratedImage {
   project Project @relation(fields: [projectId], references: [id])
 
   @@map("generated_images")
+}
+
+model TokenUsage {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  tokens    Int
+  action    String
+  model     String   @default("")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@map("token_usage")
 }

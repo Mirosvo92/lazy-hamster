@@ -12,6 +12,16 @@ import {
     LANDING_SYSTEM_PROMPT,
 } from './prompts';
 
+// Balances are stored in credits (1 credit = 100 OpenAI tokens)
+const MIN_CREDITS_PER_ACTION: Record<string, number> = {
+    analyze: 10,
+    generate_questions: 20,
+    generate_image_prompts: 20,
+    generate_image: 50,
+    generate_landing_prompt: 100,
+    generate_landing: 300,
+};
+
 export interface Question {
     id: string;
     label: string;
@@ -55,7 +65,7 @@ export class AnalyzerService {
         locale: string,
         userId = 'default-user-001',
     ): Promise<{ brand: string; model: string; description: string }> {
-        await this.ensureTokens(userId);
+        await this.ensureTokens(userId, 'analyze');
         const response = await this.client.responses.create({
             model: 'gpt-4.1-mini',
             input: [
@@ -80,7 +90,7 @@ export class AnalyzerService {
             ],
         });
 
-        await this.deductTokens(userId, response.usage?.total_tokens ?? 0);
+        await this.deductTokens(userId, response.usage?.total_tokens ?? 0, 'analyze', 'gpt-4.1-mini');
 
         const text = response.output_text;
 
@@ -103,7 +113,7 @@ export class AnalyzerService {
         locale: string,
         userId = 'default-user-001',
     ): Promise<Question[]> {
-        await this.ensureTokens(userId);
+        await this.ensureTokens(userId, 'generate_questions');
         const response = await this.client.responses.create({
             model: 'gpt-4.1-mini',
             input: [
@@ -118,7 +128,7 @@ export class AnalyzerService {
             ],
         });
 
-        await this.deductTokens(userId, response.usage?.total_tokens ?? 0);
+        await this.deductTokens(userId, response.usage?.total_tokens ?? 0, 'generate_questions', 'gpt-4.1-mini');
 
         const text = response.output_text;
 
@@ -139,7 +149,7 @@ export class AnalyzerService {
         description: string,
         userId = 'default-user-001',
     ): Promise<string[]> {
-        await this.ensureTokens(userId);
+        await this.ensureTokens(userId, 'generate_image_prompts');
         const response = await this.client.responses.create({
             model: 'gpt-4.1-mini',
             input: [
@@ -154,7 +164,7 @@ export class AnalyzerService {
             ],
         });
 
-        await this.deductTokens(userId, response.usage?.total_tokens ?? 0);
+        await this.deductTokens(userId, response.usage?.total_tokens ?? 0, 'generate_image_prompts', 'gpt-4.1-mini');
 
         try {
             const parsed: unknown = JSON.parse(response.output_text);
@@ -256,7 +266,7 @@ export class AnalyzerService {
         userId: string,
         projectId: string,
     ): Promise<{ url: string; prompt: string } | null> {
-        await this.ensureTokens(userId);
+        await this.ensureTokens(userId, 'generate_image');
 
         const response: any = await this.client.chat.completions.create({
             model: this.configService.getOrThrow<string>('IMAGE_MODEL'),
@@ -282,7 +292,12 @@ export class AnalyzerService {
             ],
         });
 
-        await this.deductTokens(userId, response?.usage?.total_tokens ?? 0);
+        await this.deductTokens(
+            userId,
+            response?.usage?.total_tokens ?? 0,
+            'generate_image',
+            this.configService.get<string>('IMAGE_MODEL', ''),
+        );
 
         const content: string = response?.choices?.[0]?.message?.content ?? '';
 
@@ -376,7 +391,7 @@ export class AnalyzerService {
         userId = 'default-user-001',
         projectId?: string,
     ): Promise<{ landingPrompt: string }> {
-        await this.ensureTokens(userId);
+        await this.ensureTokens(userId, 'generate_landing_prompt');
         let sellerData = '';
         if (Object.keys(formAnswers).length > 0) {
             sellerData = '\n\n--- ДАННЫЕ ОТ ПРОДАВЦА ---\n';
@@ -419,6 +434,8 @@ export class AnalyzerService {
         await this.deductTokens(
             userId,
             promptResponse.usage?.total_tokens ?? 0,
+            'generate_landing_prompt',
+            'gpt-4.1-mini',
         );
 
         if (projectId) {
@@ -437,7 +454,7 @@ export class AnalyzerService {
         userId: string,
         projectId: string,
     ): Promise<{ url: string; prompt: string }[]> {
-        await this.ensureTokens(userId);
+        await this.ensureTokens(userId, 'generate_image');
 
         // Download source image from S3
         const imageResponse = await fetch(sourceImageUrl);
@@ -474,7 +491,12 @@ export class AnalyzerService {
                 ],
             });
 
-            await this.deductTokens(userId, response?.usage?.total_tokens ?? 0);
+            await this.deductTokens(
+                userId,
+                response?.usage?.total_tokens ?? 0,
+                'generate_image',
+                this.configService.get<string>('IMAGE_MODEL', ''),
+            );
 
             const content: string =
                 response?.choices?.[0]?.message?.content ?? '';
@@ -998,7 +1020,7 @@ export class AnalyzerService {
         sellerData?: string,
         customScripts?: string,
     ): Promise<{ landingId: string }> {
-        await this.ensureTokens(userId);
+        await this.ensureTokens(userId, 'generate_landing');
 
         const landing = await this.prisma.landing.create({
             data: {
@@ -1096,8 +1118,16 @@ export class AnalyzerService {
                 max_tokens: 26000,
                 stream: false,
             });
+            console.log('response', response);
+            console.log('response', response?.usage);
+            console.log('response', response);
 
-            await this.deductTokens(userId, response?.usage?.total_tokens ?? 0);
+            await this.deductTokens(
+                userId,
+                (response?.usage?.total_tokens as number) ?? 0,
+                'generate_landing',
+                'gemini-3.1-pro-preview',
+            );
 
             if (response.choices?.[0]?.finish_reason === 'length') {
                 console.warn(
@@ -1173,24 +1203,38 @@ export class AnalyzerService {
         });
     }
 
-    private async ensureTokens(userId: string): Promise<void> {
+    private async ensureTokens(userId: string, action: string): Promise<void> {
+        const required = MIN_CREDITS_PER_ACTION[action] ?? 10;
         const user = await this.prisma.user.findUnique({
             where: { id: userId },
             select: { tokenBalance: true },
         });
-        if (!user || user.tokenBalance <= 0) {
+        if (!user || user.tokenBalance < required) {
             throw new HttpException(
-                'Insufficient tokens',
+                `Insufficient credits. Required: ${required}, available: ${user?.tokenBalance ?? 0}`,
                 HttpStatus.PAYMENT_REQUIRED,
             );
         }
     }
 
-    private async deductTokens(userId: string, tokens: number): Promise<void> {
-        if (tokens <= 0) return;
-        await this.prisma.user.update({
-            where: { id: userId },
-            data: { tokenBalance: { decrement: tokens } },
-        });
+    private async deductTokens(
+        userId: string,
+        tokens: number,
+        action: string,
+        model = '',
+    ): Promise<void> {
+        const minCredits = MIN_CREDITS_PER_ACTION[action] ?? 10;
+        // If API didn't return usage — fall back to minimum for this action
+        const credits = tokens > 0 ? Math.ceil(tokens / 100) : minCredits;
+        const actualTokens = tokens > 0 ? tokens : minCredits * 100;
+        await this.prisma.$transaction([
+            this.prisma.user.update({
+                where: { id: userId },
+                data: { tokenBalance: { decrement: credits } },
+            }),
+            this.prisma.tokenUsage.create({
+                data: { userId, tokens: actualTokens, action, model },
+            }),
+        ]);
     }
 }
