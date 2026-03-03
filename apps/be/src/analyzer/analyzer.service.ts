@@ -259,7 +259,7 @@ export class AnalyzerService {
         await this.ensureTokens(userId);
 
         const response: any = await this.client.chat.completions.create({
-            model: 'gpt-image-1',
+            model: this.configService.getOrThrow<string>('IMAGE_MODEL'),
             messages: [
                 {
                     role: 'user',
@@ -452,8 +452,7 @@ export class AnalyzerService {
         for (const prompt of imagePrompts) {
             const response: any = await this.client.chat.completions.create({
                 // model: 'gemini-3-pro-image-preview',
-                // model: 'sora_image',
-                model: 'gpt-image-1',
+                model: this.configService.getOrThrow<string>('IMAGE_MODEL'),
                 messages: [
                     {
                         role: 'user',

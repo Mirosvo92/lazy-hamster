@@ -1,7 +1,7 @@
 <div class="details-container">
   @if (loading()) {
     <img src="/loader.gif" alt="Loading..." class="loader" />
-    <p class="loading-text">Generating questions...</p>
+    <p class="loading-text">Generating...</p>
   } @else if (error()) {
     <p class="error-text">{{ error() }}</p>
     <button mat-flat-button (click)="goBack()">Go back</button>

@@ -86,6 +86,7 @@ Use transform and opacity for animations (avoid layout thrashing).
 
 /*Sticky header with smooth scroll navigation*/
 /*Hero section (large bold headline, emotional hook, subheadline, primary + secondary CTA)*/
+/*USP section (1–3 bold differentiators: what makes this product unique, shown as icon + headline + short copy cards)*/
 /*Benefits section (grid with animated SVG icons)*/
 /*How it works (3 or 4 steps with visuals)*/
 /*Feature comparison or feature highlight grid*/
@@ -153,6 +154,34 @@ No overflow
 No cropped or clipped images on any screen width — test at 320px, 375px, 414px
 Optimized animations for mobile
 Floating bottom CTA on small screens
+
+━━━━━━━━━━━━━━━━━━
+SEO (MANDATORY)
+━━━━━━━━━━━━━━━━━━
+<title> — product name + key benefit, max 60 chars
+<meta name="description"> — compelling summary with main keyword, max 155 chars
+<meta name="robots" content="index, follow">
+<link rel="canonical"> — self-referencing
+Open Graph: og:title, og:description, og:image (use product_main image URL), og:type="website"
+All <img> must have descriptive alt attributes (product name + context, NOT empty or "image")
+Headings hierarchy: exactly ONE <h1> (hero headline), then <h2> per section, <h3> for sub-items
+Use semantic HTML: <header>, <main>, <section>, <article>, <footer> — no div-soup for structure
+<section> must have aria-label or id for landmark navigation
+Structured data: add <script type="application/ld+json"> with Product schema (name, description, image, offers.price, offers.priceCurrency)
+
+━━━━━━━━━━━━━━━━━━
+TESTIMONIALS (MANDATORY)
+━━━━━━━━━━━━━━━━━━
+You MUST include a testimonials section. Missing testimonials = FAILURE.
+Add minimum 5 realistic customer reviews. Each review MUST have:
+- Full name (realistic, locale-appropriate)
+- Avatar: colored circle with initials (CSS only, no images)
+- Star rating: 5 filled SVG stars (★ inline SVG, colored gold #FFB800)
+- Review text: 2–4 sentences, specific to the product, emotionally persuasive
+- Optional: verified buyer badge
+
+Layout: auto-scrolling slider on desktop, swipeable cards on mobile.
+Testimonials must sound authentic — no generic phrases like "Great product!". Reference specific product features or results.
 
 ━━━━━━━━━━━━━━━━━━
 MOBILE PERFORMANCE
@@ -232,6 +261,20 @@ TECHNICAL REQUIREMENTS:
 - !Important. User should see full image, do not cut it
 
 ━━━━━━━━━━━━━━━━━━
+SEO (MANDATORY)
+━━━━━━━━━━━━━━━━━━
+<title> — product name + key benefit, max 60 chars
+<meta name="description"> — compelling summary with main keyword, max 155 chars
+<meta name="robots" content="index, follow">
+<link rel="canonical"> — self-referencing
+Open Graph: og:title, og:description, og:image (use product_main image URL), og:type="website"
+All <img> must have descriptive alt attributes (product name + context, NOT empty or "image")
+Headings hierarchy: exactly ONE <h1> (hero headline), then <h2> per section, <h3> for sub-items
+Use semantic HTML: <header>, <main>, <section>, <article>, <footer> — no div-soup for structure
+<section> must have aria-label or id for landmark navigation
+Structured data: add <script type="application/ld+json"> with Product schema (name, description, image, offers.price, offers.priceCurrency)
+
+━━━━━━━━━━━━━━━━━━
 MOBILE PERFORMANCE (80% of users are on mobile — treat this as critical)
 ━━━━━━━━━━━━━━━━━━
 
@@ -278,6 +321,20 @@ ASSET PLACEMENT RULES:
 - "lifestyle" → benefits or social proof section
 - "detail" → mechanism or features section
 - "hero_background" → hero section background (use as CSS background-image on the hero wrapper)
+
+━━━━━━━━━━━━━━━━━━
+TESTIMONIALS (MANDATORY)
+━━━━━━━━━━━━━━━━━━
+You MUST include a testimonials section. Missing testimonials = FAILURE.
+Add minimum 5 realistic customer reviews. Each review MUST have:
+- Full name (realistic, locale-appropriate)
+- Avatar: colored circle with initials (CSS only, no images)
+- Star rating: 5 filled SVG stars (inline SVG, colored gold #FFB800)
+- Review text: 2–4 sentences, specific to the product, emotionally persuasive
+- Optional: verified buyer badge
+
+Layout: auto-scrolling slider on desktop, swipeable cards on mobile.
+Testimonials must sound authentic — no generic phrases like "Great product!". Reference specific product features or results.
 
 ━━━━━━━━━━━━━━━━━━
 QA — SELF-CHECK (MANDATORY BEFORE OUTPUT)
@@ -414,6 +471,14 @@ JSON STRUCTURE:
   "objections": [],
   "unique_mechanism": "",
   "positioning_angle": "",
+  "usp": {
+    "headline": "",
+    "points": [
+      { "title": "", "description": "" },
+      { "title": "", "description": "" },
+      { "title": "", "description": "" }
+    ]
+  },
   "offer": {
     "core_promise": "",
     "bonuses": [],
@@ -425,6 +490,7 @@ JSON STRUCTURE:
   "landing_blocks": [
     { "type": "hero", "goal": "" },
     { "type": "problem", "goal": "" },
+    { "type": "usp", "goal": "Show 2–3 bold differentiators that make this product uniquely better" },
     { "type": "mechanism", "goal": "" },
     { "type": "benefits", "goal": "" },
     { "type": "social_proof", "goal": "" },
@@ -542,7 +608,7 @@ JSON STRUCTURE:
   "sections": [
     {
       "id": "",
-      "type": "hero | problem | mechanism | benefits | comparison | social_proof | offer | faq | guarantee | cta",
+      "type": "hero | problem | usp | mechanism | benefits | comparison | social_proof | offer | faq | guarantee | cta",
       "headline": "",
       "subheadline": "",
       "body": "",
@@ -602,6 +668,7 @@ CONVERSION RULES:
 
 - Above-the-fold must immediately communicate core promise
 - Problem section must intensify emotional discomfort
+- USP section must show 2–3 concrete differentiators as icon + bold title + 1-line description cards — make it scannable and punchy
 - Mechanism must create differentiation
 - Offer must feel high value
 - CTA must reduce friction

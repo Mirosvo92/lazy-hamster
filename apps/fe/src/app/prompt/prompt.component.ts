@@ -49,6 +49,7 @@ export class PromptComponent implements OnInit, OnDestroy {
   generatingLanding = signal(false);
   landingUrl = signal<string | null>(null);
   landingError = signal<string | null>(null);
+  landingStopped = signal(false);
 
   private analysis: AnalysisResult | null = null;
   private formAnswers: Record<string, unknown> = {};
@@ -309,6 +310,40 @@ export class PromptComponent implements OnInit, OnDestroy {
     this.router.navigate(['/']);
   }
 
+  openSettingLanding(): void {
+    // route will be added later
+  }
+
+  downloadImage(url: string): void {
+    this.http.get(url, { responseType: 'blob' }).subscribe({
+      next: (blob) => {
+        const objectUrl = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = objectUrl;
+        a.download = url.split('/').pop() || 'image.webp';
+        a.click();
+        URL.revokeObjectURL(objectUrl);
+      },
+      error: () => window.open(url, '_blank'),
+    });
+  }
+
+  downloadLanding(): void {
+    const url = this.landingUrl();
+    if (!url) return;
+    this.http.get(url, { responseType: 'blob' }).subscribe({
+      next: (blob) => {
+        const objectUrl = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = objectUrl;
+        a.download = url.split('/').pop() || 'landing.html';
+        a.click();
+        URL.revokeObjectURL(objectUrl);
+      },
+      error: () => window.open(url, '_blank'),
+    });
+  }
+
   generateLandingPage(): void {
     if (this.generatedImages().length !== 4) return;
 
@@ -386,6 +421,7 @@ export class PromptComponent implements OnInit, OnDestroy {
       .patch(`/api/analyze/landing-status/${this.currentLandingId}/cancel`, {})
       .subscribe();
     this.generatingLanding.set(false);
+    this.landingStopped.set(true);
     this.currentLandingId = '';
   }
 

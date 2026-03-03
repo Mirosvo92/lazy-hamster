@@ -31,9 +31,7 @@
   }
 }
 
-.link-icon {
-  font-size: 18px;
-  width: 18px;
-  height: 18px;
-  flex-shrink: 0;
+.actions {
+  display: flex;
+  gap: 12px;
 }

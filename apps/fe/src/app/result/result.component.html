@@ -12,12 +12,6 @@
 
       <mat-card-content>
         <p>{{ a.description }}</p>
-        @if (a.imageUrl) {
-          <p class="image-url">
-            <mat-icon class="link-icon">link</mat-icon>
-            <a [href]="a.imageUrl" target="_blank" rel="noopener">{{ a.imageUrl }}</a>
-          </p>
-        }
       </mat-card-content>
     </mat-card>
 
