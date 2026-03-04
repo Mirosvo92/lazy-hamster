@@ -161,6 +161,7 @@ export class AnalyzerController {
             productDescription?: string;
             sellerData?: string;
             customScripts?: string;
+            addCookies?: boolean;
         },
     ) {
         return this.analyzerService.startLandingGeneration(
@@ -171,6 +172,7 @@ export class AnalyzerController {
             body.productDescription,
             body.sellerData,
             body.customScripts,
+            body.addCookies,
         );
     }
 

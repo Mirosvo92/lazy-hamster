@@ -843,6 +843,7 @@ export class AnalyzerService {
         landingId: string,
         productDescription?: string,
         sellerData?: string,
+        addCookies?: boolean,
     ): string {
         const apiBase = this.configService.getOrThrow<string>('API_BASE_URL');
         const formEndpoint = `${apiBase}/api/analyze/orders/${landingId}`;
@@ -913,6 +914,9 @@ export class AnalyzerService {
             sales_hooks: `Implement EVERY hook listed. Interpret each one: countdown/timer/счётчик/лічильник → live JS countdown timer near CTA; low stock/заканчивается/закінчується → "Only X left" badge + progress bar; discount/скидк/знижк → discount badge + strikethrough original price; free shipping/бесплатная доставка/безкоштовна → free shipping banner; gift/подарок/подарунок → gift badge near CTA. For any other hook, add it prominently on the page.`,
             social_links: `Add to the footer as clickable links with inline SVG icons for each platform. Use the value as href if it looks like a URL, otherwise use "#" as placeholder.`,
             extra_info: `Incorporate into the benefits / features section.`,
+            legal_information: `Add to the footer as a collapsible section or small text block labeled "Legal Information". Use the exact text provided.`,
+            privacy_policy: `Add to the footer as a link or collapsible "Privacy Policy" section. Use the exact text provided.`,
+            contact_us: `Add a "Contact Us" section in the footer with the provided details (phone, email, address, hours). Use appropriate SVG icons for each contact type.`,
         };
 
         const skipFields = new Set(['lp_language']);
@@ -931,6 +935,10 @@ export class AnalyzerService {
                 ? `\n\n--- SELLER DATA — USE ALL OF THE FOLLOWING (MANDATORY) ---\nEvery item below MUST appear in the landing page. Do not skip any.\n\n${sellerInstructions.join('\n\n')}`
                 : '';
 
+        const cookieSection = addCookies
+            ? `\n\n--- COOKIE CONSENT (MANDATORY) ---\nAdd a cookie consent banner as a small popup fixed at the bottom of the page.\nRequirements:\n- Position: fixed bottom-left or bottom-center, small (max 360px wide), non-intrusive\n- Contains: short GDPR-compliant text (1–2 lines), "Accept" and "Decline" buttons\n- On Accept: hide the banner, set a cookie "cookie_consent=accepted" (365 days)\n- On Decline: hide the banner, set a cookie "cookie_consent=declined" (365 days)\n- On page load: if cookie is already set, do NOT show the banner\n- Style: matches page theme, subtle shadow, rounded corners, backdrop or solid background\n- Text language must match the landing page language`
+            : '';
+
         return [
             landingPrompt,
             languageSection,
@@ -939,6 +947,7 @@ export class AnalyzerService {
                 ? `\n\n--- PRODUCT DESCRIPTION ---\n${productDescription}`
                 : '',
             sellerUsageSection,
+            cookieSection,
             `\n\n--- FORM SUBMISSION ---\nThe form must send a POST request to: ${formEndpoint}\nRequest body (JSON): { "name": <string>, "email": <string>, "phone": <string> }\nUse these exact input name attributes: name="name", name="email", name="phone"\nDo NOT write the fetch/submit JS — it will be injected separately.`,
         ]
             .filter(Boolean)
@@ -1019,6 +1028,7 @@ export class AnalyzerService {
         productDescription?: string,
         sellerData?: string,
         customScripts?: string,
+        addCookies?: boolean,
     ): Promise<{ landingId: string }> {
         await this.ensureTokens(userId, 'generate_landing');
 
@@ -1039,6 +1049,7 @@ export class AnalyzerService {
             productDescription,
             sellerData,
             customScripts,
+            addCookies,
         );
 
         return { landingId: landing.id };
@@ -1052,6 +1063,7 @@ export class AnalyzerService {
         productDescription?: string,
         sellerData?: string,
         customScripts?: string,
+        addCookies?: boolean,
     ): Promise<void> {
         try {
             // Check if cancelled before starting
@@ -1107,10 +1119,11 @@ export class AnalyzerService {
                 landingSlug ?? landingId,
                 productDescription,
                 sellerData,
+                addCookies,
             );
 
             const response: any = await this.client.chat.completions.create({
-                model: 'gemini-3.1-pro-preview',
+                model: this.configService.getOrThrow<string>('CODER_MODEL'),
                 messages: [
                     { role: 'system', content: LANDING_SYSTEM_PROMPT },
                     { role: 'user', content: userContent },
@@ -1126,7 +1139,7 @@ export class AnalyzerService {
                 userId,
                 (response?.usage?.total_tokens as number) ?? 0,
                 'generate_landing',
-                'gemini-3.1-pro-preview',
+                this.configService.getOrThrow<string>('CODER_MODEL'),
             );
 
             if (response.choices?.[0]?.finish_reason === 'length') {

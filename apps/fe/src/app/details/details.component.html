@@ -181,6 +181,52 @@
 
     <mat-card class="question-card">
       <mat-card-content>
+        <label class="question-label">Legal Information</label>
+        <mat-form-field appearance="outline" class="full-width">
+          <textarea
+            matInput
+            [(ngModel)]="legalInformation"
+            name="legalInformation"
+            rows="3"
+            placeholder="Terms of service, disclaimers, legal notices..."
+          ></textarea>
+        </mat-form-field>
+
+        <label class="question-label">Privacy Policy</label>
+        <mat-form-field appearance="outline" class="full-width">
+          <textarea
+            matInput
+            [(ngModel)]="privacyPolicy"
+            name="privacyPolicy"
+            rows="3"
+            placeholder="How you collect and use customer data..."
+          ></textarea>
+        </mat-form-field>
+
+        <label class="question-label">Contact Us</label>
+        <mat-form-field appearance="outline" class="full-width">
+          <textarea
+            matInput
+            [(ngModel)]="contactUs"
+            name="contactUs"
+            rows="3"
+            placeholder="Phone, email, address, working hours..."
+          ></textarea>
+        </mat-form-field>
+      </mat-card-content>
+    </mat-card>
+
+    <mat-card class="question-card">
+      <mat-card-content>
+        <mat-checkbox [(ngModel)]="addCookies" name="addCookies">
+          Add cookie consent popup
+        </mat-checkbox>
+        <p class="field-hint">A small GDPR-compliant cookie banner will appear at the bottom of the landing page with Accept / Decline buttons.</p>
+      </mat-card-content>
+    </mat-card>
+
+    <mat-card class="question-card">
+      <mat-card-content>
         <label class="question-label">Custom Scripts</label>
         <p class="field-hint">Paste analytics, tracking or any other scripts (e.g. Google Analytics, Facebook Pixel). They will be injected into &lt;head&gt; of the landing page.</p>
         <mat-form-field appearance="outline" class="full-width">

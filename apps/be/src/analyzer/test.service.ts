@@ -365,7 +365,7 @@ export class TestService {
         );
 
         const response: any = await this.client.chat.completions.create({
-            model: 'gemini-3.1-pro-preview',
+            model: this.configService.getOrThrow<string>('CODER_MODEL'),
             messages: [
                 {
                     role: 'system',

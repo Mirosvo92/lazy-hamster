@@ -10,6 +10,7 @@ import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { MatChipsModule } from '@angular/material/chips';
 import { MatIconModule } from '@angular/material/icon';
+import { MatCheckboxModule } from '@angular/material/checkbox';
 import { AnalysisResult } from '../services/image-upload.service';
 import { TokenService } from '../services/token.service';
 
@@ -38,6 +39,7 @@ export interface Question {
     MatSelectModule,
     MatChipsModule,
     MatIconModule,
+    MatCheckboxModule,
   ],
   templateUrl: './details.component.html',
   styleUrl: './details.component.scss',
@@ -59,6 +61,10 @@ export class DetailsComponent implements OnInit {
   customChipInputs: Record<string, string> = {};
   chipInputValues: Record<string, Record<string, string>> = {};
   customScripts = '';
+  addCookies = false;
+  legalInformation = '';
+  privacyPolicy = '';
+  contactUs = '';
 
   constructor(
     private readonly router: Router,
@@ -212,8 +218,20 @@ export class DetailsComponent implements OnInit {
       }
     }
 
+    if (this.legalInformation.trim()) {
+      result['legal_information'] = this.legalInformation.trim();
+    }
+    if (this.privacyPolicy.trim()) {
+      result['privacy_policy'] = this.privacyPolicy.trim();
+    }
+    if (this.contactUs.trim()) {
+      result['contact_us'] = this.contactUs.trim();
+    }
     if (this.customScripts.trim()) {
       result['customScripts'] = this.customScripts.trim();
+    }
+    if (this.addCookies) {
+      result['addCookies'] = true;
     }
 
     this.router.navigate(['/prompt', this.projectId], {

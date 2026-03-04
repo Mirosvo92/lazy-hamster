@@ -356,7 +356,7 @@ export class PromptComponent implements OnInit, OnDestroy {
     if (Object.keys(this.formAnswers).length > 0) {
       sellerData = 'SELLER DATA:\n';
       for (const [key, value] of Object.entries(this.formAnswers)) {
-        if (key === 'customScripts') continue; // injected separately, not passed to AI
+        if (key === 'customScripts' || key === 'addCookies') continue;
         const displayValue = Array.isArray(value)
           ? value.join(', ')
           : typeof value === 'object'
@@ -370,6 +370,8 @@ export class PromptComponent implements OnInit, OnDestroy {
       ? this.formAnswers['customScripts']
       : undefined;
 
+    const addCookies = this.formAnswers['addCookies'] === true;
+
     this.http
       .post<{ landingId: string }>('/api/analyze/generate-landing', {
         landingPrompt: this.landingPrompt(),
@@ -378,6 +380,7 @@ export class PromptComponent implements OnInit, OnDestroy {
         productDescription: this.analysis?.description,
         sellerData,
         customScripts,
+        addCookies: addCookies || undefined,
       })
       .subscribe({
         next: (res) => {
