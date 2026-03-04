@@ -1,0 +1,29 @@
+<div class="lang-chain-container">
+  <h1>LangChain Testing</h1>
+
+  <mat-form-field appearance="outline" class="prompt-field">
+    <mat-label>Product prompt</mat-label>
+    <textarea
+      matInput
+      rows="6"
+      [ngModel]="prompt()"
+      (ngModelChange)="prompt.set($event)"
+      placeholder="Describe the product for which you want to generate a landing page..."
+    ></textarea>
+  </mat-form-field>
+
+  <button mat-flat-button color="primary" (click)="generate()" [disabled]="loading() || !prompt().trim()">
+    @if (loading()) {
+      Generating...
+    } @else {
+      Generate Landing
+    }
+  </button>
+
+  @if (url()) {
+    <div class="result-preview">
+      <a [href]="url()" target="_blank" class="result-link">Open in new tab</a>
+      <iframe [src]="safeUrl()" title="Generated Landing"></iframe>
+    </div>
+  }
+</div>
