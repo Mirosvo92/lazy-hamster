@@ -41,12 +41,29 @@ export class LanggraphCompatService {
 
     addHumanMessage(threadId: string, content: LGMessageContent): void {
         const msgs = this.getMessages(threadId);
+        // Clear quick_replies chips — user already responded
+        msgs.forEach((m) => {
+            if (m.type === 'ai' && m.additional_kwargs.quick_replies) {
+                delete m.additional_kwargs.quick_replies;
+            }
+        });
         msgs.push({
             id: `msg_human_${randomUUID()}`,
             type: 'human',
             content,
             additional_kwargs: {},
         });
+    }
+
+    addQuickRepliesToLastAI(threadId: string, options: string[]): void {
+        const msgs = this.getMessages(threadId);
+        const lastAI = [...msgs].reverse().find((m) => m.type === 'ai');
+        if (lastAI) {
+            lastAI.additional_kwargs = {
+                ...lastAI.additional_kwargs,
+                quick_replies: options,
+            };
+        }
     }
 
     addAIMessage(threadId: string, content: string, msgId: string): void {

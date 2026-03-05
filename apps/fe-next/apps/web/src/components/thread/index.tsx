@@ -117,6 +117,13 @@ export function Thread() {
   const messages = stream.messages;
   const isLoading = stream.isLoading;
 
+  const quickReplies: string[] = (() => {
+    if (isLoading) return [];
+    const lastAI = [...(messages ?? [])].reverse().find((m) => m.type === "ai");
+    return (lastAI?.additional_kwargs as Record<string, unknown>)
+      ?.quick_replies as string[] ?? [];
+  })();
+
   const lastError = useRef<string | undefined>(undefined);
 
   useEffect(() => {
@@ -207,6 +214,27 @@ export function Thread() {
     );
 
     setInput("");
+  };
+
+  const handleQuickReply = (option: string) => {
+    if (isLoading) return;
+    setFirstTokenReceived(false);
+    const newHumanMessage: Message = {
+      id: uuidv4(),
+      type: "human",
+      content: option,
+    };
+    const toolMessages = ensureToolCallsHaveResponses(stream.messages);
+    stream.submit(
+      { messages: [...toolMessages, newHumanMessage] },
+      {
+        streamMode: ["values"],
+        optimisticValues: (prev) => ({
+          ...prev,
+          messages: [...(prev.messages ?? []), ...toolMessages, newHumanMessage],
+        }),
+      },
+    );
   };
 
   const handleRegenerate = (
@@ -402,6 +430,21 @@ export function Thread() {
                 )}
 
                 <ScrollToBottom className="absolute bottom-full left-1/2 -translate-x-1/2 mb-4 animate-in fade-in-0 zoom-in-95" />
+
+                {quickReplies.length > 0 && (
+                  <div className="flex flex-wrap gap-2 mx-auto max-w-3xl mb-2 px-1">
+                    {quickReplies.map((option) => (
+                      <button
+                        key={option}
+                        type="button"
+                        onClick={() => handleQuickReply(option)}
+                        className="px-3 py-1.5 text-sm rounded-full border bg-background hover:bg-muted transition-colors shadow-sm"
+                      >
+                        {option}
+                      </button>
+                    ))}
+                  </div>
+                )}
 
                 <div className="bg-muted rounded-2xl border shadow-xs mx-auto mb-8 w-full max-w-3xl relative z-10">
                   <form

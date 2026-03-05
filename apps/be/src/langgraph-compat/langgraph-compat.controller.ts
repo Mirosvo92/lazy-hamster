@@ -193,6 +193,16 @@ export class LanggraphCompatController {
                         sub.unsubscribe();
                         break;
 
+                    case 'quick_replies':
+                        this.lgService.addQuickRepliesToLastAI(
+                            threadId,
+                            event.options ?? [],
+                        );
+                        write('values', {
+                            messages: this.lgService.getMessages(threadId),
+                        });
+                        break;
+
                     case 'phase':
                     case 'section_done':
                         // skip

@@ -126,14 +126,22 @@ export interface ChatEvent {
         | 'section_done'
         | 'landing_done'
         | 'error'
-        | 'input_required';
+        | 'input_required'
+        | 'quick_replies';
     text?: string;
     phase?: ChatPhase;
     sectionName?: string;
     sectionHtml?: string;
     url?: string;
     message?: string;
+    options?: string[];
 }
+
+// ─── Language chips (static — no AI needed) ───────────────────────────────────
+const LANGUAGE_CHIPS = ['Русский', 'English', 'Українська', 'Polski', 'Türkçe'];
+
+const PLACEHOLDER_RE = /придумай|make.?up|заглушк|placeholder|сгенерир|выдум/i;
+const GO_BACK_RE = /назад|неправильно|ошиб[сл]|прошл|предыдущ|go.?back|wrong|mistake/i;
 
 // ─── Per-session runtime ──────────────────────────────────────────────────────
 interface SessionRuntime {
@@ -268,6 +276,9 @@ export class ChatAgentService {
             .addNode('analyze', async (state) => {
                 return this.nodeAnalyze(state, runtime);
             })
+            .addNode('confirm_product', async (state) => {
+                return this.nodeConfirmProduct(state, runtime);
+            })
             .addNode('interview', async (state) => {
                 return this.nodeInterview(state, runtime);
             })
@@ -288,7 +299,8 @@ export class ChatAgentService {
             })
             .addEdge(START, 'wait_for_image')
             .addConditionalEdges('wait_for_image', (s) => s.nextNode)
-            .addEdge('analyze', 'interview')
+            .addEdge('analyze', 'confirm_product')
+            .addEdge('confirm_product', 'interview')
             .addConditionalEdges('interview', (s) => s.nextNode)
             .addConditionalEdges('start_section', (s) => s.nextNode)
             .addConditionalEdges('request_image', (s) => s.nextNode)
@@ -411,41 +423,136 @@ export class ChatAgentService {
         };
     }
 
+    private async nodeConfirmProduct(
+        state: AgentStateType,
+        runtime: SessionRuntime,
+    ): Promise<Partial<AgentStateType>> {
+        let product = state.product!;
+
+        while (true) {
+            this.emitMessage(
+                runtime,
+                `Вижу это **${product.brand} ${product.model}**.\n${product.description}\n\nВсё верно?`,
+            );
+            this.emitOptions(runtime, ['✅ Да, верно', '✏️ Нет, изменить']);
+
+            const input = await this.waitForInput(runtime);
+            const text = input.text.trim().toLowerCase();
+
+            if (
+                /^(да|yes|верно|ок|ok|✅|correct|right|точно|все верно|всё верно)/i.test(
+                    text,
+                )
+            ) {
+                break;
+            }
+
+            this.emitMessage(
+                runtime,
+                'Уточни: что именно не так? Напиши правильное название, бренд или описание.',
+            );
+            const correction = await this.waitForInput(runtime);
+            product = await this.parseProductCorrection(
+                correction.text,
+                product,
+                state.userId,
+            );
+            this.emitMessage(
+                runtime,
+                `Обновил: **${product.brand} ${product.model}**.`,
+            );
+        }
+
+        return { product };
+    }
+
     private async nodeInterview(
         state: AgentStateType,
         runtime: SessionRuntime,
     ): Promise<Partial<AgentStateType>> {
         const answers = [...state.answers];
-        let { questionIndex, locale } = state;
-        const { pendingQuestions } = state;
+        let locale = state.locale;
+        const MAX_QUESTIONS = 15;
 
-        // Loop through all questions
-        while (questionIndex < pendingQuestions.length) {
-            const q = pendingQuestions[questionIndex];
-            const progress = `(${questionIndex + 1}/${pendingQuestions.length})`;
-            this.emitMessage(runtime, `${progress} ${q.text}`);
+        while (answers.length < MAX_QUESTIONS) {
+            // Agent decides what to ask next based on conversation so far
+            const decision = await this.decideNextQuestion(
+                state.product!,
+                answers,
+                locale,
+                state.userId,
+            );
+
+            if (decision.action === 'done') break;
+
+            const question = decision.question;
+            this.emitMessage(runtime, question);
+
+            const chips = /язык|language/i.test(question)
+                ? LANGUAGE_CHIPS
+                : await this.generateQuickReplies(
+                      question,
+                      state.product!,
+                      locale,
+                      state.userId,
+                  );
+            this.emitOptions(runtime, chips);
 
             const input = await this.waitForInput(runtime);
-            const answer = input.text.trim();
+            const raw = input.text.trim();
 
-            answers.push({ key: q.key, question: q.text, answer });
+            if (GO_BACK_RE.test(raw) && answers.length > 0) {
+                answers.pop();
+                this.emitMessage(
+                    runtime,
+                    'Хорошо, вернёмся к предыдущему вопросу.',
+                );
+                continue;
+            }
 
-            if (q.key === 'language') {
+            let answer = raw;
+            if (PLACEHOLDER_RE.test(raw)) {
+                answer = await this.generatePlaceholderAnswer(
+                    question,
+                    state.product!,
+                    locale,
+                    state.userId,
+                );
+                this.emitMessage(runtime, `Придумал: _${answer}_`);
+            } else {
+                const interpreted = await this.interpretInterviewAnswer(
+                    question,
+                    raw,
+                    state.product!,
+                    locale,
+                    state.userId,
+                );
+                if (interpreted.type === 'clarify') {
+                    this.emitMessage(runtime, interpreted.explanation);
+                    continue;
+                }
+                if (interpreted.acknowledgment) {
+                    this.emitMessage(runtime, interpreted.acknowledgment);
+                }
+                answer = interpreted.answer;
+            }
+
+            if (/язык|language/i.test(question)) {
                 locale = this.detectLocale(answer);
             }
 
-            questionIndex++;
+            answers.push({ key: `q_${answers.length}`, question, answer });
         }
 
         this.emitPhase(runtime, 'generating');
         this.emitMessage(
             runtime,
-            'Все данные собраны! Начинаем строить лендинг секция за секцией.',
+            'Отлично! Все данные собраны. Начинаем строить лендинг секция за секцией.',
         );
 
         return {
             answers,
-            questionIndex,
+            questionIndex: answers.length,
             locale,
             currentSectionIndex: 0,
             nextNode: 'start_section',
@@ -507,11 +614,14 @@ export class ChatAgentService {
             } else if (skip) {
                 this.emitMessage(runtime, 'Пропускаем.');
             } else {
-                // Re-ask
-                this.emitMessage(
-                    runtime,
-                    `Отправь фото или напиши "пропустить".`,
+                // User wrote something unexpected — reply conversationally
+                const reply = await this.conversationalReply(
+                    input.text,
+                    spec.question,
+                    state.locale,
+                    state.userId,
                 );
+                this.emitMessage(runtime, reply);
                 continue;
             }
 
@@ -692,6 +802,263 @@ export class ChatAgentService {
         return { landingUrl: s3.url };
     }
 
+    // ── AI helpers ────────────────────────────────────────────────────────────
+
+    private async decideNextQuestion(
+        product: { brand: string; model: string; description: string },
+        answers: { question: string; answer: string }[],
+        locale: string,
+        userId: string,
+    ): Promise<{ action: 'ask'; question: string } | { action: 'done' }> {
+        await this.ensureTokens(userId, 'chat_questions');
+
+        const answeredSummary = answers
+            .map((a, i) => `${i + 1}. Q: ${a.question}\n   A: ${a.answer}`)
+            .join('\n');
+
+        const res = await this.client.responses.create({
+            model: 'gpt-4.1-mini',
+            input: [
+                {
+                    role: 'system',
+                    content: `You are a landing page specialist interviewing a seller to gather info for their product page.
+Product: ${product.brand} ${product.model} — ${product.description}
+
+To generate a great landing page you need:
+- Price and any discounts / promotions
+- Delivery options and terms
+- Payment methods accepted
+- Warranty / guarantees
+- Contact info (phone, email, messengers)
+- Social media links
+- Target audience and key benefits (if not obvious from product)
+- Preferred language for the landing page
+
+${answers.length > 0 ? `Already gathered (${answers.length} answers):\n${answeredSummary}` : 'No answers yet.'}
+
+Decide what to ask next:
+- Ask ONE specific, conversational question tailored to this product and the answers already given
+- If an answer revealed something interesting, follow up on it
+- Don't re-ask what's already covered
+- Return { "action": "done" } ONLY when all key areas above are covered
+- Ask the question in: ${locale}
+
+Return ONLY valid JSON: {"action": "ask", "question": "..."} or {"action": "done"}`,
+                },
+            ],
+        });
+
+        await this.deductTokens(
+            userId,
+            res.usage?.total_tokens ?? 0,
+            'chat_questions',
+            'gpt-4.1-mini',
+        );
+
+        try {
+            return JSON.parse(res.output_text) as
+                | { action: 'ask'; question: string }
+                | { action: 'done' };
+        } catch {
+            return { action: 'done' };
+        }
+    }
+
+    private async generateQuickReplies(
+        question: string,
+        product: { brand: string; model: string; description: string },
+        locale: string,
+        userId: string,
+    ): Promise<string[]> {
+        await this.ensureTokens(userId, 'chat_questions');
+        const res = await this.client.responses.create({
+            model: 'gpt-4.1-mini',
+            input: [
+                {
+                    role: 'system',
+                    content: `You are helping create quick reply chips for a landing page questionnaire.
+Product: ${product.brand} ${product.model} — ${product.description}
+Language: ${locale}
+
+Generate 3-5 short, realistic answer options for the question.
+Rules:
+- Options must be specific and relevant to THIS product
+- Keep each option short (2-5 words)
+- Always include "Придумай за меня" as the last option
+- Include a "no/skip" option if the question is about optional features
+Return ONLY a JSON array of strings, e.g. ["Option 1", "Option 2", "Option 3"]`,
+                },
+                { role: 'user', content: question },
+            ],
+        });
+        await this.deductTokens(
+            userId,
+            res.usage?.total_tokens ?? 0,
+            'chat_questions',
+            'gpt-4.1-mini',
+        );
+        try {
+            const parsed = JSON.parse(res.output_text) as unknown;
+            if (Array.isArray(parsed)) return parsed as string[];
+        } catch {
+            // fallback
+        }
+        return ['Придумай за меня'];
+    }
+
+    private async interpretInterviewAnswer(
+        question: string,
+        userMessage: string,
+        product: { brand: string; model: string; description: string },
+        locale: string,
+        userId: string,
+    ): Promise<
+        | { type: 'answer'; answer: string; acknowledgment: string | null }
+        | { type: 'clarify'; explanation: string }
+    > {
+        await this.ensureTokens(userId, 'chat_questions');
+        const res = await this.client.responses.create({
+            model: 'gpt-4.1-mini',
+            input: [
+                {
+                    role: 'system',
+                    content: `You are a landing page assistant filling a questionnaire. Language: ${locale}.
+Question asked: "${question}"
+Product: ${product.brand} ${product.model} — ${product.description}
+
+Classify the user's reply and return JSON:
+
+If the user is asking for clarification or doesn't understand the question:
+{ "type": "clarify", "explanation": "<clear, friendly explanation of what the question means and what kind of answer is expected, 1-2 sentences>" }
+
+If the user gave an answer (even partial or with extra info):
+{
+  "type": "answer",
+  "answer": "<clean answer to the question>",
+  "acknowledgment": "<one short warm sentence acknowledging specific details they mentioned, or null if plain yes/no>"
+}
+
+Return ONLY valid JSON, no markdown.`,
+                },
+                { role: 'user', content: userMessage },
+            ],
+        });
+        await this.deductTokens(
+            userId,
+            res.usage?.total_tokens ?? 0,
+            'chat_questions',
+            'gpt-4.1-mini',
+        );
+        try {
+            return JSON.parse(res.output_text) as
+                | {
+                      type: 'answer';
+                      answer: string;
+                      acknowledgment: string | null;
+                  }
+                | { type: 'clarify'; explanation: string };
+        } catch {
+            return {
+                type: 'answer',
+                answer: userMessage,
+                acknowledgment: null,
+            };
+        }
+    }
+
+    private async conversationalReply(
+        userMessage: string,
+        currentQuestion: string,
+        locale: string,
+        userId: string,
+    ): Promise<string> {
+        await this.ensureTokens(userId, 'chat_questions');
+        const res = await this.client.responses.create({
+            model: 'gpt-4.1-mini',
+            input: [
+                {
+                    role: 'system',
+                    content: `You are a friendly landing page creation assistant speaking in ${locale}.
+The user is being asked: "${currentQuestion}"
+They replied with something unexpected.
+- Answer their question/comment naturally and helpfully.
+- Then gently guide them back to what is needed (photo or skip).
+- Keep it short (2-3 sentences max).
+- Do NOT generate images, just explain options.`,
+                },
+                { role: 'user', content: userMessage },
+            ],
+        });
+        await this.deductTokens(
+            userId,
+            res.usage?.total_tokens ?? 0,
+            'chat_questions',
+            'gpt-4.1-mini',
+        );
+        return res.output_text.trim();
+    }
+
+    private async generatePlaceholderAnswer(
+        question: string,
+        product: { brand: string; model: string; description: string },
+        locale: string,
+        userId: string,
+    ): Promise<string> {
+        await this.ensureTokens(userId, 'chat_questions');
+        const res = await this.client.responses.create({
+            model: 'gpt-4.1-mini',
+            input: [
+                {
+                    role: 'system',
+                    content: `Generate a short, realistic answer to the question for this product. 1-2 sentences max. Language: ${locale}. Return only the answer, no explanations.`,
+                },
+                {
+                    role: 'user',
+                    content: `Product: ${product.brand} ${product.model}\nDescription: ${product.description}\nQuestion: ${question}`,
+                },
+            ],
+        });
+        await this.deductTokens(
+            userId,
+            res.usage?.total_tokens ?? 0,
+            'chat_questions',
+            'gpt-4.1-mini',
+        );
+        return res.output_text.trim();
+    }
+
+    private async parseProductCorrection(
+        correctionText: string,
+        current: { brand: string; model: string; description: string },
+        userId: string,
+    ): Promise<{ brand: string; model: string; description: string }> {
+        await this.ensureTokens(userId, 'chat_questions');
+        const res = await this.client.responses.create({
+            model: 'gpt-4.1-mini',
+            input: [
+                {
+                    role: 'system',
+                    content: `Extract product info from the user correction. Return JSON: {"brand":"...","model":"...","description":"..."}. If a field is not mentioned, keep the current value.`,
+                },
+                {
+                    role: 'user',
+                    content: `Current: ${JSON.stringify(current)}\nUser correction: ${correctionText}`,
+                },
+            ],
+        });
+        await this.deductTokens(
+            userId,
+            res.usage?.total_tokens ?? 0,
+            'chat_questions',
+            'gpt-4.1-mini',
+        );
+        try {
+            return JSON.parse(res.output_text) as typeof current;
+        } catch {
+            return { ...current, description: correctionText };
+        }
+    }
+
     // ── Wait for user input ───────────────────────────────────────────────────
 
     private waitForInput(
@@ -708,11 +1075,11 @@ export class ChatAgentService {
         });
     }
 
-    async handleMessageByUrl(
+    handleMessageByUrl(
         sessionId: string,
         text: string,
         imageUrl?: string,
-    ): Promise<void> {
+    ): void {
         const runtime = this.getRuntime(sessionId);
         if (runtime.waitingForInput && runtime.resolveInput) {
             runtime.resolveInput({ text, imageUrl });
@@ -748,7 +1115,7 @@ export class ChatAgentService {
             ...imageLines,
             '',
             '--- SELLER DATA — USE ALL OF THE FOLLOWING (MANDATORY) ---',
-            ...answers.map((a) => `${a.key}: ${a.answer}`),
+            ...answers.map((a) => `${a.question ?? a.key}: ${a.answer}`),
             '',
             '--- LANGUAGE (MANDATORY) ---',
             `Write every word on the page in: ${state.locale}`,
@@ -846,6 +1213,10 @@ ${sections.join('\n\n')}
 
     private emitPhase(runtime: SessionRuntime, phase: ChatPhase): void {
         this.emit(runtime, { type: 'phase', phase });
+    }
+
+    private emitOptions(runtime: SessionRuntime, options: string[]): void {
+        this.emit(runtime, { type: 'quick_replies', options });
     }
 
     private emit(runtime: SessionRuntime, event: ChatEvent): void {
