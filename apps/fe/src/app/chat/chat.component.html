@@ -1,0 +1,109 @@
+<div class="chat-page">
+  <div class="chat-header">
+    <span class="chat-title">Landing Agent</span>
+    <span class="phase-badge" [class]="'phase-' + phase()">{{ phaseLabel() }}</span>
+  </div>
+
+  <div class="message-list" #messageList>
+    @for (msg of messages(); track msg.id) {
+      <div class="message-row" [class.user]="msg.role === 'user'" [class.agent]="msg.role === 'agent'">
+
+        @if (msg.role === 'agent') {
+          <div class="avatar agent-avatar">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 9h6M9 12h6M9 15h4"/>
+            </svg>
+          </div>
+        }
+
+        <div class="bubble" [class.user-bubble]="msg.role === 'user'" [class.agent-bubble]="msg.role === 'agent'">
+          @if (msg.imageUrl) {
+            <img [src]="msg.imageUrl" class="msg-image" alt="uploaded" />
+          }
+          @if (msg.text) {
+            <p class="msg-text">{{ msg.text }}</p>
+          }
+          @if (msg.sectionPreview) {
+            <div class="section-preview">
+              <div class="section-preview-label">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg>
+                Секция: {{ msg.sectionPreview.name }}
+              </div>
+              <iframe class="section-iframe" [srcdoc]="getSafeHtml(msg.sectionPreview.html)" title="Section preview"></iframe>
+            </div>
+          }
+        </div>
+
+        @if (msg.role === 'user') {
+          <div class="avatar user-avatar">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
+            </svg>
+          </div>
+        }
+
+      </div>
+    }
+
+    @if (isTyping()) {
+      <div class="message-row agent">
+        <div class="avatar agent-avatar">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 9h6M9 12h6M9 15h4"/>
+          </svg>
+        </div>
+        <div class="bubble agent-bubble">
+          <div class="typing-indicator"><span></span><span></span><span></span></div>
+        </div>
+      </div>
+    }
+
+    @if (landingUrl()) {
+      <div class="landing-result">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="20 6 9 17 4 12"/>
+        </svg>
+        <span>Лендинг готов!</span>
+        <a [href]="landingUrl()" target="_blank" class="landing-link">Открыть →</a>
+      </div>
+    }
+  </div>
+
+  <div class="input-area">
+    @if (previewUrl()) {
+      <div class="file-preview">
+        <img [src]="previewUrl()" alt="preview" />
+        <button class="remove-file" (click)="removeFile()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
+        </button>
+      </div>
+    }
+
+    <div class="input-row">
+      <label class="attach-btn" title="Прикрепить фото">
+        <input type="file" accept="image/*" (change)="onFileSelected($event)" hidden />
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>
+        </svg>
+      </label>
+
+      <textarea
+        class="input-field"
+        rows="1"
+        placeholder="Напишите сообщение..."
+        [ngModel]="inputText()"
+        (ngModelChange)="inputText.set($event)"
+        (keydown)="onEnter($event)"
+        [disabled]="phase() === 'done'"
+      ></textarea>
+
+      <button class="send-btn" (click)="send()" [disabled]="!canSend()">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
+        </svg>
+      </button>
+    </div>
+  </div>
+</div>

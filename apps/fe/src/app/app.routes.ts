@@ -36,4 +36,9 @@ export const routes: Routes = [
     loadComponent: () =>
       import('./testing/lang-chain/lang-chain.component').then((m) => m.LangChainComponent),
   },
+  {
+    path: 'chat',
+    loadComponent: () =>
+      import('./chat/chat.component').then((m) => m.ChatComponent),
+  },
 ];

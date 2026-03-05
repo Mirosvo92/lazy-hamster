@@ -3,7 +3,9 @@ import { ConfigModule } from '@nestjs/config';
 import { AnalyzerModule } from './analyzer/analyzer.module';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
+import { ChatModule } from './chat/chat.module';
 import { LangChainModule } from './lang-chain/lang-chain.module';
+import { LanggraphCompatModule } from './langgraph-compat/langgraph-compat.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { ProjectsModule } from './projects/projects.module';
 import { UploadModule } from './upload/upload.module';
@@ -21,6 +23,8 @@ import { UsersModule } from './users/users.module';
         ProjectsModule,
         UsersModule,
         LangChainModule,
+        ChatModule,
+        LanggraphCompatModule,
     ],
     controllers: [AppController],
     providers: [AppService],

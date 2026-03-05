@@ -11,7 +11,8 @@
         "build:staging:be": "pnpm --filter @lazy-hamster/be build:staging",
         "studio": "pnpm --filter @lazy-hamster/database exec prisma studio",
         "dev": "turbo run dev --parallel",
-        "build": "turbo run build --parallel"
+        "build": "turbo run build --parallel",
+        "start:fe-next": "pnpm --filter @lazy-hamster/fe-next dev"
     },
     "devDependencies": {
         "turbo": "^2.8.12",
