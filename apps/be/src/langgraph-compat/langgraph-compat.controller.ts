@@ -57,22 +57,26 @@ export class LanggraphCompatController {
     @Get('threads/:id')
     getThread(@Param('id') id: string) {
         const now = NOW();
-        return { thread_id: id, created_at: now, updated_at: now, metadata: {} };
+        return {
+            thread_id: id,
+            created_at: now,
+            updated_at: now,
+            metadata: {},
+        };
     }
 
     @Post('threads/:id/runs/stream')
     async streamRun(
         @Param('id') threadId: string,
         @Body() body: Record<string, unknown>,
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
         @Res() res: any,
     ): Promise<void> {
         // Parse input message
-        const messages = (
-            (body?.input as Record<string, unknown>)?.messages as Array<
+        const messages =
+            ((body?.input as Record<string, unknown>)?.messages as Array<
                 Record<string, unknown>
-            >
-        ) ?? [];
+            >) ?? [];
         const firstMsg = messages[0] ?? {};
         let text = '';
         let imageUrl: string | undefined;
@@ -85,15 +89,17 @@ export class LanggraphCompatController {
             >) {
                 if (part.type === 'text') text = part.text as string;
                 else if (part.type === 'image_url') {
-                    imageUrl = (
-                        (part.image_url as Record<string, unknown>)?.url as string
-                    );
+                    imageUrl = (part.image_url as Record<string, unknown>)
+                        ?.url as string;
                 }
             }
         }
 
         // Store original content (with image_url if present) so values events reflect it
-        this.lgService.addHumanMessage(threadId, firstMsg.content as string ?? text);
+        this.lgService.addHumanMessage(
+            threadId,
+            (firstMsg.content as string) ?? text,
+        );
 
         // Set up SSE
         res.setHeader('Content-Type', 'text/event-stream');
@@ -188,7 +194,9 @@ export class LanggraphCompatController {
                         break;
 
                     case 'error':
-                        write('error', { error: event.message ?? 'Unknown error' });
+                        write('error', {
+                            error: event.message ?? 'Unknown error',
+                        });
                         end();
                         sub.unsubscribe();
                         break;

@@ -141,7 +141,8 @@ export interface ChatEvent {
 const LANGUAGE_CHIPS = ['Русский', 'English', 'Українська', 'Polski', 'Türkçe'];
 
 const PLACEHOLDER_RE = /придумай|make.?up|заглушк|placeholder|сгенерир|выдум/i;
-const GO_BACK_RE = /назад|неправильно|ошиб[сл]|прошл|предыдущ|go.?back|wrong|mistake/i;
+const GO_BACK_RE =
+    /назад|неправильно|ошиб[сл]|прошл|предыдущ|go.?back|wrong|mistake/i;
 
 // ─── Per-session runtime ──────────────────────────────────────────────────────
 interface SessionRuntime {
@@ -477,7 +478,7 @@ export class ChatAgentService {
         while (answers.length < MAX_QUESTIONS) {
             // Agent decides what to ask next based on conversation so far
             const decision = await this.decideNextQuestion(
-                state.product!,
+                state.product,
                 answers,
                 locale,
                 state.userId,
@@ -492,7 +493,7 @@ export class ChatAgentService {
                 ? LANGUAGE_CHIPS
                 : await this.generateQuickReplies(
                       question,
-                      state.product!,
+                      state.product,
                       locale,
                       state.userId,
                   );
@@ -514,7 +515,7 @@ export class ChatAgentService {
             if (PLACEHOLDER_RE.test(raw)) {
                 answer = await this.generatePlaceholderAnswer(
                     question,
-                    state.product!,
+                    state.product,
                     locale,
                     state.userId,
                 );
@@ -523,7 +524,7 @@ export class ChatAgentService {
                 const interpreted = await this.interpretInterviewAnswer(
                     question,
                     raw,
-                    state.product!,
+                    state.product,
                     locale,
                     state.userId,
                 );
